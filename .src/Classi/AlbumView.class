@@ -14,12 +14,13 @@ Public Sub DoSortTable(Field As String)
   Dim i As Integer
   Dim Startpos, MidPos, EndPos As Integer
   Dim MyValue As String
+
   For i = 0 To localtable.count - 1
     StartPos = InStr(localtable[i], ts & Field)
     MidPos = InStr(localtable[i], ts, StartPos + 1)
     EndPos = InStr(localtable[i], ts, Midpos + 1)
     MyValue = Mid(localtable[i], Startpos, Endpos - startpos)
-    Replace(localtable[i], MyValue, "")
+    localtable[i] = Replace(localtable[i], MyValue, "")
     localtable[i] = MyValue & localtable[i]
   Next 'i
 
@@ -66,6 +67,7 @@ Public Function Init(playlist As Playlistclass, theview As Gridview, Optional fi
   Dim artist As String
   Dim filter As String
   Dim matchfilter As Boolean = False
+  Dim numtracks As Integer = 1
   
   view = theview
   view.clear
@@ -87,6 +89,7 @@ Public Function Init(playlist As Playlistclass, theview As Gridview, Optional fi
   DoSortTable("Album")
   i = localtable.count - 1
   If localtable.count > 1 Then
+    numtracks = 1
     Repeat 'remove duplicate albums
       album = Trim(localplaylist.GetValue(localtable[i], "Album"))
       If album = "" Then album = ("Unknown")
@@ -94,6 +97,13 @@ Public Function Init(playlist As Playlistclass, theview As Gridview, Optional fi
       If nextalbum = "" Then nextalbum = ("Unknown")
       If Lower(Trim(album)) = Lower(Trim(nextalbum)) Then 
         localtable.Remove(i - 1) ' + 1)
+        numtracks += 1
+          Else
+        If numtracks = 1 Then 
+          Global.myDebug(album, " has just one track", " removing it from the albumview list")
+          localtable.Remove(i)
+        Endif
+        numtracks = 1
       Endif
       i = i - 1
     Until (i <= 1)
@@ -113,6 +123,9 @@ Public Function Init(playlist As Playlistclass, theview As Gridview, Optional fi
       Endif
     Next 'i
   Endif
+
+
+
 
 
 
@@ -249,7 +262,7 @@ Public Sub data(r As Integer, c As Integer)
   'Endif
   coverfile = CoverManager.Coverfile(artist, album, path)
 
-  If Not Exist(coverfile) 'se il coverfile non esiste
+  If Not Exist(coverfile, True) 'se il coverfile non esiste
     If CoverManager.IsUncovered(path) Then '...e non può essesere creato/caricato
       view.Data.Picture = CoverManager.coverpicture(coverfile, path, iconsize) 'ritorna quello di default
         Else

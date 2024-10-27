@@ -12,33 +12,13 @@ Public ParentContainers As String[] = ["VideoFiltersBox", "AudioFiltersBox", "Vi
 
 'Those objects values aren't saved 
 'PUBLIC ExcludedValues AS String[] = ["Statusbar1", "SaveVolumeSlider", "SeekBar", "TagPanel"]
-Public ExcludedValues As String[] = ["thumblebox", "NumberBox", "View", "Statusbar1", "SeekBar", "TagPanel", "DriverDescription", "DescriptionArea", "FilterTextBox", "NOPARSETABLIBRARY", "NOPARSETABALBUMS", "NOPARSETABBROWSE", "NOPARSETABPLAYLIST", "NOPARSETABCHAPTERS", "NOPARSETABFLASH", "NOPARSETABSHOUTCAST", "NOPARSETABPODCAST", "NOPARSETABDVB", "NOPARSETABCDDA", "NOPARSETABDVD", "NOPARSETABPROFILES", "NOPARSETABMEDIAINFO", "YOUVIDEOINFO", "SCROLLVIEWYT", "SIDEPANELYOUTUBE", "CACHEBAR", "NOSAVEVBOX2", "NOSAVEVBOX3", "NOSAVEHBOX10", "AUDIOCHAINBOX", "AUDIOFILTERSBOX", "VIDEOCHAINBOX", "VIDEOFILTERSBOX", "PLAYLISTSELINFOBOX", "PLAYLISTSELINFO", "LIBRARYSELINFO", "BUTTON_SHOW_MAN", "HELPBOX", "TEXTAREAHELP", "NOSAVELABEL1", "filter_button_up", "filter_button_down"]
+Public ExcludedValues As String[] = ["thumblebox", "NumberBox", "View", "Statusbar1", "SeekBar", "TagPanel", "DriverDescription", "DescriptionArea", "FilterTextBox", "NOPARSETABLIBRARY", "NOPARSETABALBUMS", "NOPARSETABBROWSE", "NOPARSETABPLAYLIST", "NOPARSETABCHAPTERS", "NOPARSETABSHOUTCAST", "NOPARSETABPODCAST", "NOPARSETABDVB", "NOPARSETABCDDA", "NOPARSETABDVD", "NOPARSETABPROFILES", "NOPARSETABMEDIAINFO", "YOUVIDEOINFO", "SCROLLVIEWYT", "SIDEPANELYOUTUBE", "CACHEBAR", "NOSAVEVBOX2", "NOSAVEVBOX3", "NOSAVEHBOX10", "AUDIOCHAINBOX", "AUDIOFILTERSBOX", "VIDEOCHAINBOX", "VIDEOFILTERSBOX", "PLAYLISTSELINFOBOX", "PLAYLISTSELINFO", "LIBRARYSELINFO", "BUTTON_SHOW_MAN", "HELPBOX", "TEXTAREAHELP", "filter_button_up", "filter_button_down"]
 
 Public Function ReadedConfFile(FileName As String) As String[]
-  If Exist(FileName) Then Return Split(File.Load(filename), "\n", "", True)
+  If Exist(FileName, True) Then Return Split(File.Load(filename), "\n", "", True)
   'else
   Return [""]
 End
-
-
-Public Function OLD_ReadedConfFile(FileName As String) As String[]
-  
-  Dim ConfFile As File
-  Dim FileInMemory As String
-  Dim Splitted As New String[]
-  
-  If Exist(FileName) Then
-    ConfFile = Open FileName For Read
-    Read #ConfFile, FileInMemory, - Stat(FileName).size
-    Close #ConfFile
-    Splitted = Split(FileInMemory, "\n")
-    Return Splitted
-  Else
-    splitted.Add("")
-    Return splitted
-  Endif
-End
-
 
 
 
@@ -77,22 +57,29 @@ End
 Private Sub Reconfigure(theObject As Object, TheSettings As String[], TheForm As Object)
   'Will parse String[] and try to reconfigure the object
   
-  Dim MyProperty, MyValue As String
+  Dim MyProperty As String
+  Dim MyValue As Variant
   Dim Setting As String
   Dim layout As Integer[]
- 
+
   
   For Each Setting In TheSettings
     Try MyProperty = Split(Setting, "=")[0]
     'TRY MyValue = Split(Setting, "=")[1]
     Try myvalue = Replace(setting, MyProperty & "=", "")
+ 
     If Setting Like ".*" Then
       ' If MyProperty = ".parent.name" Then
       '    If (Upper(TheObject.parent.name) <> Upper(MyProperty)) Then Reparent(TheObject, MyValue, TheForm)
       If MyProperty = ".Value" Then
-        'IF MyValue <> "" THEN TheObject.value = MyValue
-        If (MyValue <> TheObject.value) Then TheObject.value = MyValue
-        'TheObject.value = MyValue
+        ' If theobject Is Spinbar Then
+        '   If theobject.name Like "*extras*" Then Stop
+        ' Endif
+
+
+        If MyValue <> TheObject.value
+           Try TheObject.value = MyValue
+        Endif
         
       'Else If ((MyProperty = ".text") And Not ((theobject Is CheckBox) Or (theobject Is Button) Or (theobject Is Textarea) Or (theobject Is Togglebutton))) Then
       Else If (MyProperty = ".text") Then
@@ -103,8 +90,10 @@ Private Sub Reconfigure(theObject As Object, TheSettings As String[], TheForm As
         Endif
         
       Else If MyProperty = ".visible" Then
-        If (theobject.visible <> MyValue) Then
-          If Not (theobject Is Fileview) Then Try TheObject.visible = MyValue
+        If Not theobject Is Form Then
+          If (theobject.visible <> MyValue) Then
+            If Not (theobject Is Fileview) Then Try TheObject.visible = MyValue
+          Endif
         Endif
         
       Else If MyProperty = ".left" Then
@@ -135,7 +124,7 @@ Private Sub Reconfigure(theObject As Object, TheSettings As String[], TheForm As
         
       Else If MyProperty = ".index" Then
         If (TheObject.index <> MyValue) Then
-          Try TheObject.index = MyValue
+          Try TheObject.index = MyValue 
         Endif
         
       Else If MyProperty = ".font.name" Then
@@ -204,7 +193,7 @@ Private Sub SetObject(TheForm As Object, SubSettings As String[])
   
   If Trim(SubSettings[0]) <> "" Then
     If Not (TheForm.controls[SubSettings[0]] = Null) Then
-      Reconfigure(TheForm.controls[SubSettings[0]], subsettings, TheForm)
+      Try Reconfigure(TheForm.controls[SubSettings[0]], subsettings, TheForm)
     Else
       OldStyle_SetObject(TheForm, SubSettings)
     Endif
@@ -272,15 +261,19 @@ Public Sub Load(TheForm As Object, Filename As String)
   Dim myobj As Object
   Dim theSettings, SubSettings As String[]
   Dim i, j As Integer = 0
-  Dim obj_name As String
+  Dim obj_name, FirstChar As String
+  'If Lower(theform.name) = "fmain" Then Stop
   'Filename is the form setting file
   '/home/user/.config/gambas/Xt7-Player/default.profile/FMain
   FileName = Filename & ".profile/" & TheForm.name
-  
+
   theSettings = ReadedConfFile(Filename)
   
   For i = 0 To thesettings.Max
-    If Left(thesettings[i]) <> "." Then 'if it is not a property, but an object name
+    FirstChar = Left(thesettings[i]) 
+    'Objects beginning with "." are properties
+    'Objects beginning With "#" are internal gambas sub - objects
+    If (FirstChar <> "." And FirstChar <> "#") Then 
       obj_name = thesettings[i]
       myobj = theform[obj_name]
       If myobj <> Null Then 'if we found that object in the form controls
@@ -310,56 +303,6 @@ Public Sub Load(TheForm As Object, Filename As String)
   If Lower(TheForm.name) = "fmain" Then LoadLeftSideTabsVisibility(FileName)
 End
 
-
-Public Sub OLD_Load(TheForm As Object, Filename As String)
-  
-  Dim myobj As Object
-  Dim theSettings, SubSettings As String[]
-  
-  'Filename is the form setting file
-  '/home/user/.config/gambas/Xt7-Player/default.profile/FMain
-  FileName = Filename & ".profile/" & TheForm.name
-  
-  'Load it into an array, line by line, eg:
-  ' MainToolBar
-  ' .visible = T
-  ' ShowVolBtn2
-  ' .parent.name = MainToolBar
-  ' .text =
-  ' .visible = T
-  ' .Value =
-  theSettings = ReadedConfFile(Filename)
-  
-  For Each myobj In TheForm.controls
-    'If myobj.name = "CheckBox2gl" Then Stop
-     ' If Lower(myobj.name) Like "*fontstring2*" Then
-     '   Stop
-     ' Endif
-    'If we find the object definition in the settings file:
-    If theSettings.Find(myobj.name) <> -1 Then
-      'then we load it's properties:
-      'extract name and properties from Settings array and pass them to reconfigure sub
-      ' If myobj.name Like "*extrastereo*" Then
-      '   global.myDebug("")
-      ' Endif
-      Subsettings = NameAndProperties(myobj.name, thesettings)
-      Try Reconfigure(myobj, Subsettings, TheForm)
-    Endif 
-  Next
-  
-  'check if there is something that needs to be reparented
-  If TheForm.tag = "reparents" Then
-    global.myDebug("Timer = " & Timer)
-    ReparentAndSort(Theform, thesettings)
-    global.myDebug("Timer = " & Timer)
-  Endif
-  
-  If Upper(theform.name) <> "GENERALOPTIONS" Then
-    global.myDebug(theform.name)
-    Try TheForm.AlreadyLoaded = True
-  Endif
-  If Lower(TheForm.name) = "fmain" Then LoadLeftSideTabsVisibility(FileName)
-End
 
 Public Sub ReparentAndSort(TheForm As Object, settings As String[])
   Dim i, j As Integer
@@ -456,8 +399,8 @@ Public Sub LoadLeftSideTabsVisibility(ProfilePath As String)
   Dim myfilename As String = ProfilePath & ".TabsVisibility.new"
   Dim i As Integer
   Dim tmp As String
-  
-  If Exist(myfilename) Then
+
+  If Exist(myfilename, True) Then
     myfile = Open myfilename For Read
     For i = 0 To FMain.LeftSideTabs.count - 1
       Try Line Input #myfile, tmp
@@ -483,71 +426,58 @@ Public Function GetLastProfile(confpath As String) As String
 
 End
 
-Public Sub SaveCachefile(mytype As String, cachesize As String, mincache As String, seekcache As String)
+Public Sub SaveCachefile(mytype As String, cacheMB As String, cacheSec As String)
   Dim cachesizefile As String = global.confpath & "/" & global.CurrentProfile & ".profile/" & "cachesize."
   Dim cachetextfile As String = ""
     
-  If (cachesize = "0") Then 
-    cachetextfile = " -nocache "
-      Else
-    If (cachesize <> "") Then cachetextfile = " -cache " & cachesize & " "
-  Endif
-    
-    If mincache <> "" Then cachetextfile = cachetextfile & " -cache-min " & mincache & " "
-    If seekcache <> "" Then cachetextfile = cachetextfile & " -cache-seek-min " & seekcache & " "
-    Try file.Save(cachesizefile & mytype, cachetextfile)
+  If cacheMB <> "" Then cachetextfile = " --demuxer-max-bytes " & cacheMB & " "
+  If cacheSec <> "" Then cachetextfile &= " --cache-secs " & cacheSec & " "   
+  Try file.Save(cachesizefile & mytype, cachetextfile)
 End    
 
 Public Sub SaveCachefiles()
   'save cache size in text files to retrieve it fast on 'boot'
-  Dim cachesize, mincache, seekcache As String
+  Dim cachesizeMB, cachesizeSEC As String
   
 
   With GeneralOptions
     
   'file
-    cachesize = ""
-    mincache = ""
-    seekcache = ""
-    If .CacheCheckbox.value Then cachesize = .CacheSpinBox.value
-    SaveCachefile("file", cachesize, mincache, seekcache)
+    cachesizeMB = ""
+    cachesizeSEC = ""
+    If .MaxCacheMB_Local_Checkbox.value Then cachesizeMB = .MaxCacheMB_Local_SpinBox.value  
+    If .MaxCacheSEC_Local_Checkbox.value Then cachesizeSEC = .MaxCacheSEC_Local_Spinbox.value  
+    SaveCachefile("file", cachesizeMB, cachesizeSec)
 
   'network
-    cachesize = ""
-    mincache = ""
-    seekcache = ""
-      If .NetCacheCheckbox.value Then cachesize = .NetCacheSpinBox.value
-      If .NetminCacheCheckbox.value Then mincache = GeneralOptions.cacheminspinbox.value
-      If .NetseekCacheCheckbox.value Then seekcache = GeneralOptions.cacheseekspinbox.value
-    SaveCachefile("network", cachesize, mincache, seekcache)
+    cachesizeMB = ""
+    cachesizeSEC = ""
+      If .MaxCacheMB_Net_Checkbox.value Then cachesizeMB = .MaxCacheMB_NET_SpinBox.value  
+      If .MaxCacheSEC_Net_Checkbox.value Then cachesizeSEC = .MaxCacheSEC_NET_Spinbox.value  
+    SaveCachefile("network", cachesizeMB, cachesizeSec)
   'dvb
-    cachesize = ""
-    mincache = ""
-    seekcache = ""
-      If .dvbtCacheCheckbox.value Then cachesize = .dvbtCacheSpinBox.value
-      If .dvbtminCacheCheckbox.value Then mincache = GeneralOptions.dvbtcacheminspinbox.value
-    SaveCachefile("dvb", cachesize, mincache, seekcache)
+    cachesizeMB = ""
+    cachesizeSEC = ""
+      If .MaxCacheMB_DVB_Checkbox.value Then cachesizeMB = .MaxCacheMB_DVB_SpinBox.value  
+      If .MaxCacheSEC_DVB_Checkbox.value Then cachesizeSEC = .MaxCacheSEC_DVB_Spinbox.value  
+    SaveCachefile("dvb", cachesizeMB, cachesizeSec)
   'dvd
-    cachesize = ""
-    mincache = ""
-    seekcache = ""
-    If .DvdCacheCheckbox.Value Then cachesize = .DVDCacheSpinBox.value
-    SaveCachefile("dvd", cachesize, mincache, seekcache)
-  'dvdnav
-    cachesize = ""
-    mincache = ""
-    seekcache = ""
-    If .DvdCacheCheckbox.Value Then cachesize = "0" 'dvdnav wont work with a cache
-    SaveCachefile("dvdnav", cachesize, mincache, seekcache)
+    cachesizeMB = ""
+    cachesizeSEC = ""
+    If .MaxCacheMB_DVD_Checkbox.value Then 
+     cachesizeMB = .MaxCacheMB_DVD_SpinBox.value  
+     cachesizeSEC = 9999
+    Endif
+    SaveCachefile("dvd", cachesizeMB, cachesizeSec)
+    SaveCachefile("dvdnav", cachesizeMB, cachesizeSec)
   'cdda
-    cachesize = ""
-    mincache = ""
-    seekcache = ""
-     If .CDDACacheCheckbox.Value Then 
-      cachesize = .CDDACacheSpinBox.Value
-      mincache = "0"
-     Endif
-    SaveCachefile("cdda", cachesize, mincache, seekcache)
+    cachesizeMB = ""
+    cachesizeSEC = ""
+    If .MaxCacheSEC_CDDA_Checkbox.value Then 
+      cachesizeSEC = .MaxCacheSEC_CDDA_Spinbox.value  
+      cachesizeMB = 99999
+    Endif
+    SaveCachefile("cdda", cachesizeMB, cachesizeSec)
   End With
 End
 
@@ -555,7 +485,6 @@ End
 
 Public Sub Save(TheForm As Object, FileName As String)
   Dim ContentOld As String = ""
-
   Dim ConfFile As File
   Dim TheObject As Object
   Dim MyValue As String = 0
@@ -563,6 +492,7 @@ Public Sub Save(TheForm As Object, FileName As String)
   Dim i As Integer
   Dim layout As String
   Dim objvalid As Boolean = False
+  Dim objname As String = ""
   Dim TheFormIsAlreadyLoaded As Boolean = True
 
   'FMain.cachedopts = "" 'fixmempv se vuoi reimplementare le cachedopts
@@ -595,8 +525,9 @@ Public Sub Save(TheForm As Object, FileName As String)
   For Each TheObject In TheForm.controls
     
     'If theobject.name Like "#*" Then Stop
+    Try objname = theobject.name
+    Try objvalid = ((objname <> "") And (Left(objname) <> "#"))
     
-    Try objvalid = (theobject.name <> "")
     If Error Then Goto returnlabel
     If (Not (Object.Type(TheObject) = "Menu")) And (Not Match(TheObject.name, ExcludedValues)) And (Not (theobject Is Separator)) Then
       'Don't descend in floatspinbox,Vslider and StringFileReq classes
@@ -604,7 +535,7 @@ Public Sub Save(TheForm As Object, FileName As String)
         Try Print #ConfFile, TheObject.name
 
         If IsSafeToReparent(TheObject) Then Print #ConfFile, ".parent.name=" & TheObject.parent.name
-        If Not ((TheObject Is TabStrip) Or (TheObject Is Label) Or (TheObject Is Button) Or (TheObject Is ToggleButton) Or (TheObject Is Checkbox) Or (TheObject Is SpinBox)) Then
+        If Not ((TheObject Is TabStrip) Or (TheObject Is Label) Or (TheObject Is Button) Or (TheObject Is ToggleButton) Or (TheObject Is Checkbox) Or (TheObject Is SpinBox) Or (theobject Is Spinbar) Or (theobject Is SwitchButton)) Then
           'IF NOT (TheObject IS TabStrip) OR (TheObject IS Label) THEN 
           If Not (TheObject.name Like "*SearchField*") Then
             Try Print #ConfFile, ".text=" & TheObject.text
@@ -659,15 +590,23 @@ Public Sub Save(TheForm As Object, FileName As String)
         If Not (TheObject Is ScrollView) Then Try Print #ConfFile, ".visible=" & TheObject.visible
         
         
-        'IF (NOT Match(TheObject.name, ExcludedValues)) THEN
         'Here we must convert point back in commas, because
         'gambas will autoconvert commas in points in float->string conversions.
         Try MyValue = TheObject.value
+        Try Print #ConfFile, ".Value=" & MyValue
         If Not Error Then
-          MyValue = Replace(MyValue, ".", ",")
-          Try Print #ConfFile, ".Value=" & MyValue
+          If InStr(myvalue, ".") > 0 Then
+            Try Print #ConfFile, ".Value=" & Replace(MyValue, ".", ",")
+              Else If InStr(myvalue, ",") > 0 Then
+                Try Print #ConfFile, ".Value=" & Replace(MyValue, ",", ".")
+          Endif
         Endif
-        'ENDIF
+
+        ' If Not Error Then
+        '   MyValue = Replace(MyValue, ".", ",")
+        '   Try Print #ConfFile, ".Value=" & MyValue
+        ' Endif
+
       Endif
     Endif
   Next

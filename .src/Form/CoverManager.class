@@ -18,21 +18,24 @@ Public Function waitforhttp(myhttpclient As HttpClient, timeout As Integer) As B
       Return 
     Endif
   Wend
-  If timeout = 0 Then Return True
+  If timeout = 0 Then 
+    global.mydebug("Timed out waiting for " & myhttpclient.URL)
+    Return True
+  Endif
   Return False
 End
 
 Public Function WebFriendly(keyword As String) As String
-  Keyword = Replace(keyword, ",", "%20")
-  Keyword = Replace(keyword, ";", "%20")
-  Keyword = Replace(keyword, "-", "%20")
-  Keyword = Replace(keyword, "à", "a")
-  Keyword = Replace(keyword, "è", "e")
-  Keyword = Replace(keyword, "é", "e")
-  Keyword = Replace(keyword, "ì", "i")
-  Keyword = Replace(keyword, "ò", "o")
-  Keyword = Replace(keyword, "ù", "u")
-  Return keyword
+  ' Keyword = Replace(keyword, ",", "%20")
+  ' Keyword = Replace(keyword, ";", "%20")
+  ' Keyword = Replace(keyword, "-", "%20")
+  ' Keyword = Replace(keyword, "à", "a")
+  ' Keyword = Replace(keyword, "è", "e")
+  ' Keyword = Replace(keyword, "é", "e")
+  ' Keyword = Replace(keyword, "ì", "i")
+  ' Keyword = Replace(keyword, "ò", "o")
+  ' Keyword = Replace(keyword, "ù", "u")
+  Return Global.urlencode(keyword)
 End
 
 
@@ -40,20 +43,18 @@ Public Sub GetCoversFromAmazon(query As String)
   Dim PreRequest As String = ""
   Dim Keyword As String
   Dim MYURL As String
-  Dim buffer, Tempfile, myline, ImageUrl, Iwidth, IHeigth As String
+  Dim buffer, Tempfile, lmyline, myline, ImageUrl, Iwidth, IHeigth As String
   Dim Splitted, ImagesURL As New String[]
   Dim Myimage As New Image
   Dim i As Integer = 0
   Dim timeout As Integer = 1000 ' centisecs
   Dim hastimedout As Boolean = True
 
-  'Since August, 15, 2009, amazon requires signed requests.
-  'I did request signing via an external php page
 
   Keyword = Chr(34) & Replace(query, " ", "%20") & Chr(34)
   Keyword = WebFriendly(keyword)
   PreRequest = "http://xt7-player.sourceforge.net/xt7forum/hmac.php?keywords=" & Keyword
-  Print PreRequest
+  global.myDebug(PreRequest)
   HttpClient1.url = PreRequest
   HttpClient1.Async = True
   HttpClient1.timeout = 10
@@ -74,7 +75,7 @@ Public Sub GetCoversFromAmazon(query As String)
   MyURL = buffer
   Try HttpClient1.url = Trim(MYURL)
   If Error Then 
-    MyQuestion.Ask(("Amazon search: Network error"), ("Ok"))
+    MyQuestion.Ask(("Cover search: Network error"), ("Ok"))
     Return
   Endif
   HttpClient1.Async = True
@@ -87,16 +88,17 @@ Public Sub GetCoversFromAmazon(query As String)
   Endif
 
   If ((HttpClient1.status < 0) Or hastimedout) Then
-    global.myDebug("Covermanager: HTTP ERROR while contacting Amazon")
+    global.myDebug("Covermanager: HTTP ERROR while cover provider")
     Return
   Endif
 
   If Lof(HttpClient1) Then Read #HttpClient1, buffer, Lof(HttpClient1)
-  Splitted = Split(buffer, "<", "", True)
+  Splitted = Split(buffer, ",", "", True)
   global.myDebug("CoverManaer: Button1_Click(): Check dupes")
   For Each myline In Splitted
-    If (myline Like "*http://*") And (myline Like "*.jpg") Then
-      ImageUrl = Split(myline, ">")[1]
+    lmyline = Lower(myline)
+    If (lmyline Like "*http?://*") And ((lmyline Like "*.jpg*") Or (lmyline Like "*.jpeg*")) Then
+      ImageUrl = Split(myline, "\"")[3]
       If ImagesURL.Find(ImageUrl) < 0 Then ImagesURL.Add(ImageUrl)
     Endif
     Wait 0.001
@@ -110,8 +112,9 @@ Public Sub GetCoversFromAmazon(query As String)
   'PRINT buffer
   global.myDebug("CoverManaer: Button1_Click(): Start downloading covers Now")
   global.myDebug("")
+
   For Each ImageUrl In ImagesURL
-    If (Imageurl Like "http://*") And (Not HitCancel) Then
+    If (Imageurl Like "http?://*") And (Not HitCancel) Then
       HttpClient1.Async = True
       HttpClient1.url = ImageUrl
       HttpClient1.timeout = 10
@@ -294,9 +297,10 @@ Public Sub Search()
   ButtonLoad.enabled = False
   Coverlist.Clear
   Coverlist.refresh
-
-  If checkboxamazon.value Then GetCoversFromAmazon(textbox1.text)
-  If checkboxGoogle.value Then GetCoversFromGoogle(textbox1.text)
+  
+  GetCoversFromAmazon(textbox1.text)
+  'If checkboxamazon.value Then GetCoversFromAmazon(textbox1.text)
+  'If checkboxGoogle.value Then GetCoversFromGoogle(textbox1.text)
   If Coverlist.count = 0 Then Message.Error(("No covers found for:") & "\n" & textbox1.text & "\n" & ("Try to use less strict terms, remove symbols and so on..."), ("Ok"))
 
   'textbox1.enabled = True
@@ -317,7 +321,7 @@ End
 
 Public Sub Form_Open()
   Global.Center(Fmain, Me)
-  Try hsplit1.Layout = [160, hsplit1.w - 160]
+  Try hsplit1.Layout = [AudioForm.coversize, hsplit1.w - audioform.coversize]
   CoverManager.Show
   combobox1.readonly = True
   combobox1.index = 0
@@ -327,8 +331,7 @@ Public CoverCacheList As New ListView(zzzfake)
 
 Public Sub RemoveCoverCache(coverfile As String, Optional RemoveSourceToo As Boolean)
   Dim cachefile As String = coverfile & "_thumbcache" 'ricava il nome dei file cache
-
-  Shell "rm '" & cachefile & "'" & "*.*" 'rimuovilo dal disco
+  Dim linked, toremove, pointed As String
   'cercalo in memoria e rimuovilo:
   If CoverCacheList.Count > 0 Then 
     CoverCacheList.Movefirst
@@ -342,11 +345,52 @@ Public Sub RemoveCoverCache(coverfile As String, Optional RemoveSourceToo As Boo
       Endif
     Until CoverCacheList.MoveBelow()
   Endif
+
+
+  'since we use soft links to save disk space, we need to be careful
+  'on deleting files that may be linked from other items.
+  'so, if what we're removing is not a link, make sure they don't loose the picture too.
+  If Exist(coverfile, False) Then
+    If Stat(coverfile, False).type = gb.Link Then
+      Try Kill coverfile
+        Else 'not a link
+      For Each linked In Dir(global.confpath & "/covers/", "*.*", gb.link)
+        linked = global.confpath & "/covers/" & linked
+        Try pointed = Stat(linked).link
+        If Error Then Continue
+        If (pointed = coverfile) And RemoveSourceToo Then
+          'replace all linked files that points to the coverfile with the real coverfile
+          Try unlink_by_copy(linked, coverfile)
+            Else If pointed Like "*" & cachefile & "*" Then
+            'replace all linked thumbcaches files that points to the thumbcache coverfile
+            Try unlink_by_copy(linked, pointed)
+        Endif
+      Next
+    Endif
+  Endif
+
   If RemoveSourceToo Then Try Kill coverfile
+
+  'clear file thumbcaches
+  Shell "rm '" & cachefile & "'" & "*.*" & " &>/dev/null" 'rimuovilo dal disco
+
   FMain.RefreshVisibleCovers(FMain.librarygrid)
   FMain.RefreshVisibleCovers(FMain.playlistgrid)
 End
 
+Public Sub unlink_by_copy(linked_file As String, Optional real_file As String = "")
+  If real_file = "" Then
+    Try real_file = Stat(linked_file).Link
+    If Not Exist(real_file) Then
+      global.myDebug("Unable to unlink by copy" & linked_file, "pointed file does not exist!")
+    Endif
+  Endif
+  Try Kill linked_file
+  If Not Error Then
+    Try Copy real_file To linked_file
+    If Error Then global.myDebug("Unable to unlink " & linked_file, "error while copying")
+  Endif
+End
 
 
 
@@ -358,22 +402,7 @@ Dim defaultcover As Boolean = False
 Dim width As Integer
 Dim neww As Integer
 
-  
-' zzzfake.Arrangement = Arrange.Fill
-' Try CoverCacheList.expand = True
-' Try zzzfake.Stacking = Window.above
-' Try zzzfake.mask = False
-' Try zzzfake.opacity = 100
-' Try zzzfake.Move(0, 0)
-' Try zzzfake.show
-
-'Wait '0.0001
-
-  'neww = generaloptions.IconWidthCombobox.text + shadowoffsetpaint 
   neww = height + (height Div 8)
-  'Return cornice(imgandshadow, neww, neww).Picture
-
-'ResizeShadowTemplate(neww * 2)
 
 'gestisce le thumbnails su disco e la loro cache in memoria
 'non crea di per sè alcuna immagine, al più restituisce delle immagini di default
@@ -385,14 +414,14 @@ If (global.isvideofile(uripath) And (generaloptions.ShowThumbsChk.value = False)
   Return cornice(Stock[CStr(height + shadowoffset) & "/video"].Image, neww)
 Endif
 
-If Exist(coverfile) Then
+If Exist(coverfile, True) Then
   Try Return CoverCacheList[cachefile].picture 'Se esiste l 'immagine in memoria dai l 'immagine in memoria ed esci
   If Error Then 'Se non esiste l 'immagine in memoria, allora
-    If Exist(cachefile) Then  'Se esiste una cache su disco allora
+    If Exist(cachefile, True) Then  'Se esiste una cache su disco allora
       Try CoverCacheList.Add(cachefile, "", cornice(Shadowed(picture.Load(cachefile)), neww)) 'mettila IN memoria **************************************
       If Not Error Then Return CoverCacheList[cachefile].picture 'ritornala
         Else 'Altrimenti(non esiste cache su disco)
-      If Exist(coverfile) 'se esiste la cover su disco, ma non la cache
+      If Exist(coverfile, True) 'se esiste la cover su disco, ma non la cache
         tmpimage = image.Load(coverfile)
         If (tmpimage.w < tmpimage.h) Then
           width = ((tmpimage.w / tmpimage.h) * height)
@@ -408,7 +437,6 @@ If Exist(coverfile) Then
     Endif
   Endif
      Else ' IF NOT Exist(coverfile) THEN 'se la cover non esiste, ricava un nuovo coverfile:
-
   If global.isytdl(uripath) Then
     coverfile = "ytdl.png"
     defaultcover = True
@@ -484,7 +512,7 @@ Public Sub UnMarkUncovered(fullpath As String)
   Dim i As Integer
   If Not UncoveredInitialized Then UncoveredInit()
   Try i = uncovered.Find(fullpath)
-  If (Not Error ) And (i >= 0) Then uncovered.Remove(i, 1)
+  If (Not Error) And (i >= 0) Then uncovered.Remove(i, 1)
 End
 
 
@@ -543,7 +571,7 @@ Public Function LookForJpgB64(filename As String, Optional saveto As String = ""
   Dim tmpfile As String = Temp & ".jpg"
   Dim tmppic As Picture
   Dim m1pos As Long
-  Dim jpgendmarker1 As String = Chr(01) & Chr(05)
+  Dim jpgendmarker1 As String = Chr(1) & Chr(5)
   Dim jpgendmarker2 As String = "00"
 
   If IsUncovered(filename) Then Return False
@@ -641,18 +669,18 @@ Public Function FindAndSeek2(mystream As File, myblock As Long, mypattern1 As St
 End
 
 Public Function LookForJpg(filename As String, Optional saveto As String = "", Optional ByRef fileerror As Boolean = False) As Boolean
-   Dim mystream As File
-   Dim myjpg As String = ""
-   Dim m1 As String = "image/"
-   Dim isvalid As Boolean = False
-   Dim tmpfile As String = Temp & ".jpg"
-   Dim tmppic As Picture
-   Dim chunk As String
-   Dim m1pos As Long
-   Dim jpgstartmarker As String = Chr(255) & Chr(216) 'FFD8
-   Dim jpgendmarker As String = Chr(255) & Chr(217)   'FFD9
-   Dim jpgstart, jpgend As Long
-   
+  Dim mystream As File
+  Dim myjpg As String = ""
+  Dim m1 As String = "image/"
+  Dim isvalid As Boolean = False
+  Dim tmpfile As String = Temp & ".jpg"
+  Dim tmppic As Picture
+  Dim chunk As String
+  Dim m1pos As Long
+  Dim jpgstartmarker As String = Chr(255) & Chr(216) 'FFD8
+  Dim jpgendmarker As String = Chr(255) & Chr(217)   'FFD9
+  Dim jpgstart, jpgend As Long
+
   If IsUncovered(filename) Then Return False
 
   Try mystream = Open filename For Input
@@ -692,9 +720,10 @@ Public Function LookForJpg(filename As String, Optional saveto As String = "", O
 
     myjpg = Read #mystream, (jpgend - jpgstart) 
     file.Save(tmpfile, myjpg)
-    Try tmppic = picture.Load(tmpfile)
+    Try tmppic = image.Load(tmpfile).picture
     If Not Error Then 
       isvalid = True
+      Stop
       Seek #mystream, jpgstart
         Else
       Seek #mystream, jpgend
@@ -773,6 +802,8 @@ Public Function LookForJpgHeuristic(filename As String, Optional saveto As Strin
     Seek #mystream, jpgstart
 
     myjpg = Read #mystream, (jpgend - jpgstart) 
+    Stop
+    
     file.Save(tmpfile, myjpg)
     Try tmppic = picture.Load(tmpfile)
     If Not Error Then 
@@ -829,12 +860,14 @@ Public Sub PictureBox1_DblClick()
   Dim newfilename As String
   Dim currentfilename As String
   Dim ScaleTo As Integer
+  Stop
   CoverManager.close
   'stop any previous search
   HitCancel = True
   'set new cover
   newfilename = Coverfile(ArtistText.text, AlbumText.text)
   
+  Try RemoveCoverCache(newfilename, False)
   Try currentfilename = Coverlist.Current.key
   If Not Error Then
     Try Kill newfilename
@@ -845,17 +878,19 @@ Public Sub PictureBox1_DblClick()
       SaveScaled(currentfilename, newfilename, ScaleTo)
     Endif
   Endif
-  Try RemoveCoverCache(newfilename, False)
   FMain.CoverRefresh()
 
+
+  Try RemoveCoverCache(newfilename, False)
   Wait 0.05
   Try currentfilename = Coverlist.Current.key
   If Not Error Then
     Try Kill newfilename
     Try Copy currentfilename To ((newfilename))
   Endif
-  Try RemoveCoverCache(newfilename, False)
   FMain.CoverRefresh(True)
+  
+
 End
 
 
@@ -929,8 +964,10 @@ Public Sub ButtonLoad_Click()
     Message.Error(("Error while loading the picture"), "Ok")
   Endif
   Picturebox1.refresh
-  FMain.CoverRefresh()
   Try RemoveCoverCache(newfilename, False)
+
+  FMain.CoverRefresh()
+
 End
 
 Public Sub Form_KeyPress()
@@ -979,7 +1016,7 @@ Public Sub SetACover(fullpath As String, artist As String, album As String, Opti
         picturebox1.refresh
         'Me.show
         Wait 0.1
-        If ((Not Exist(Coverfile(ArtistText.text, AlbumText.text))) And Not JustFileCover) Or forcesearch Then
+        If ((Not Exist(Coverfile(ArtistText.text, AlbumText.text), True)) And Not JustFileCover) Or forcesearch Then
           Try search() 'start a fetch
         Endif
       Endif
@@ -1039,13 +1076,16 @@ Public Sub CoversLookerTimer_timer()
    Return
      Else 'file not (yet?) marked as not found
    If Not global.IsNetworkURI(fullpath) Then
-     If Not Exist(fullpath) Then
+     If Not Exist(fullpath, True) Then
        global.myDebug("Missing file! " & fullpath)
-       Stop
        FileNotFoundAdd(fullpath)
         'mygrid[row, 0].picture = picture["icon:/" & (rowheight -global.rowpadding) & "/error"]
-        mygrid[row, column].text = ""
-        mygrid[row, column].clear
+        Try mygrid[row, column].text = ""
+        If Not Error Then
+          mygrid[row, column].clear
+            Else
+          Global.myDebug("Unexpected empty row")  
+        Endif
        Return
      Endif
    Endif
@@ -1126,62 +1166,58 @@ Public Sub FolderPictureToCoverCache(Directory As String, coverfilename As Strin
   Dim folderpicturefile As String
   folderpicturefile = FolderPicture(directory)
   If folderpicturefile <> "" Then
-    Copy Directory & "/" & folderpicturefile To coverfilename
+    Try Copy Directory & "/" & folderpicturefile To coverfilename
     Try mygrid[row, column].text = ""
     Try mygrid[row, column].clear
   Endif
 End
 
+
+Private folderpictures As New Collection
+
 Public Function FolderPicture(Directory As String) As String  
   Dim Files As New String[]
-  
-  Files = (Dir(Directory, "*ront*.jpg"))
-  If Files.count > 0 Then Goto FILEFOUND  
+  Dim Matches As New String[] 
+  Dim sMatch As String
+  Dim sfile As String
+  Dim afile As String
 
-  Files = (Dir(Directory, "*FRONT*.jpg")) 
-  If Files.count > 0 Then Goto FILEFOUND  
-
-  Files = (Dir(Directory, "*FRONT*.JPG"))
-  If Files.count > 0 Then Goto FILEFOUND  
-
-  Files.Insert(Dir(Directory, "ront*.JPEG"))
-  If Files.count > 0 Then Goto FILEFOUND
-  
-  Files.Insert(Dir(Directory, "*ront*.PNG"))
-  If Files.count > 0 Then Goto FILEFOUND
-  
-  Files.Insert(Dir(Directory, "*ront*.BMP"))
-  If Files.count > 0 Then Goto FILEFOUND
-  
-  Files.Insert(Dir(Directory, "*.JPG"))
-  If Files.count > 0 Then Goto FILEFOUND
-  
-  Files.Insert(Dir(Directory, "*.JPEG"))
-  If Files.count > 0 Then Goto FILEFOUND
-  
-  Files.Insert(Dir(Directory, "*.PNG"))
-  If Files.count > 0 Then Goto FILEFOUND
-  
-  Files.Insert(Dir(Directory, "*.BMP"))
-
-  FILEFOUND:
-  If Files.count > 0 Then 
-    Return Files[0]
-      Else
-    Return ""
+  If folderpictures.Exist(directory) Then 
+    Return folderpictures[directory]
   Endif
-End
 
+  Matches.Add("*front*.jpg")
+  Matches.Add("*folder*.jpg")
+
+  Matches.Add("*.jpg")
+  Matches.Add("*.jpeg")
+  Matches.Add("*.png")
+  Matches.Add("*.bmp")
+
+  For Each sMatch In Matches
+    For Each sFile In (Dir(Directory, "*"))
+      If Lower(sFile) Like sMatch Then     
+        folderpictures.Add(sFile, directory)
+        Return sFile
+      Endif
+    Next
+  Next
+
+  folderpictures.Add("", directory)
+  Return ""
+End
 
 
 Public Sub EmbeddedToCoverCache(artist As String, album As String, fullpath As String, coverfilename As String, mygrid As Gridview, row As Integer, column As Integer)
   Select Case Lower(file.Ext(fullpath))
     Case "mp3"
-      LookForJpg(fullpath, coverfilename)
-      Try mygrid[row, column].text = ""
-      Try mygrid[row, column].clear
+      makevideothumb(fullpath, coverfilename, mygrid, row, column, 1)
+      'LookForJpg(fullpath, coverfilename)
+      'Try mygrid[row, column].text = ""
+      'Try mygrid[row, column].clear
       Return
     Case "ogg"
+      LookForJpg(fullpath, coverfilename)
       If LookForJpgb64(fullpath, coverfilename) Then 
         Try mygrid[row, column].text = ""
         Try mygrid[row, column].clea
@@ -1220,7 +1256,7 @@ Private mplayerthumb As Mplayerclass
 
 
 Private lastthumbpath As String = ""
-Public Sub makevideothumb(fullpath As String, coverfilepath As String, mygrid As Gridview, row As Integer, column As Integer)
+Public Sub makevideothumb(fullpath As String, coverfilepath As String, mygrid As Gridview, row As Integer, column As Integer, Optional seconds As Integer = 300)
   If fullpath = lastthumbpath Then Return
   lastthumbpath = fullpath
 
@@ -1229,11 +1265,11 @@ Public Sub makevideothumb(fullpath As String, coverfilepath As String, mygrid As
     Wait 0.05
   Wend
   If FMain.closing Then Return
-  If Exist(coverfilepath) Then Return
+  If Exist(coverfilepath, True) Then Return
   mplayerthumb = New Mplayerclass As "thumbnailer"
   runningthumblers += 1
   global.myDebug(runningthumblers)
-  mplayerthumb.savethumb(fullpath, coverfilepath,,, mygrid, row, column)
+  mplayerthumb.savethumb(fullpath, coverfilepath,, seconds, mygrid, row, column)
 End
 
 
@@ -1245,6 +1281,7 @@ Public Sub thumbnailer_ThumbAvailableFor(fullpath As String, g As Gridview, r As
    g.refresh
    Wait
   global.myDebug(runningthumblers)
+  UnMarkUncovered(fullpath)
 End
 
 Public Sub thumbnailer_ThumbErrorFor(fullpath As String, g As Gridview, r As Integer, c As Integer)
@@ -1262,6 +1299,7 @@ Public Function DefaultLibraryIcon(fullpath As String, Optional rowheight As Int
   'rowheight -= Shadowoffset
   'strictsize mean we don't want shadows/padding and so on...
   Dim localrowpadding As Integer
+
   If strictsize Then 
     localrowpadding = 0
       Else
@@ -1318,13 +1356,15 @@ Public Sub ResizeShadowTemplate(w As Integer, Optional h As Integer = -1)
   shadowimg = shadowimg.Stretch(w + ShadowOffset, h + ShadowOffset)
 End
 
+
+
 Public Function Shadowed(src As Picture) As Image
   Dim offset As Integer = 0
   Dim w As Integer = src.w
   Dim h As Integer = src.h
   ShadowOffset = ((h - global.rowpadding) Div 8) 
   ShadowOffsetPaint = (ShadowOffset Div 2)
-  offset = - (w Div 90) 
+  offset = -(w Div 90) 
   If (((w + shadowoffset) <> shadowimg.w) Or ((h + shadowoffset) <> shadowimg.h)) Then 
     ResizeShadowTemplate(w, h)
   Endif
@@ -1334,9 +1374,9 @@ End
 Public Function keepaspect(img As Image, width As Integer) As Picture
   Dim aspect As Float = img.w / img.h
   If aspect >= 1 Then 
-    Return cornice(img.Stretch(width, CInt(width / aspect)), 160, 160)
+    Return cornice(img.Stretch(width, CInt(width / aspect)), AudioForm.coversize, AudioForm.coversize)
       Else
-    Return cornice(img.Stretch(CInt(width * aspect), width), 160, 160)
+    Return cornice(img.Stretch(CInt(width * aspect), width), AudioForm.coversize, AudioForm.coversize)
   Endif
 End
 
@@ -1346,5 +1386,34 @@ Public Sub Button1_Click()
   Try Search()
 End
 
-
+Public Sub covers_remove_unreferenced()
+  Dim i As Integer
+  Dim coverfile, f As String
+  Dim artist, album, path As String
+  Dim covers_referenced As New String[]
+  Dim coverdir As String = global.confpath & "/covers/"
+  Dim l As Playlistclass = Fmain.mylibrary
+  'per ogni oggetto nella libreria
+ 'se ha cover - > metti nell 'elenco delle cover protette
+  'Per ogni file di cover
+ '  se non c 'è nell'elenco dei protetti, cancellalo.
+  
+  For i = 0 To l.PTable.count - 1
+    album = Trim(l.GetValue(l.PTable[i], "Album"))
+    artist = Trim(l.GetValue(l.PTable[i], "Artist"))
+    path = l.GetValue(l.PTable[i], "Full Path")
+    coverfile = CoverManager.Coverfile(artist, album, path)
+    If Not (covers_referenced.exist(coverfile)) Then 
+      If Exist(coverfile, True) Then covers_referenced.Add(coverfile)
+    Endif
+  Next
+  'global.confpath & "/covers/" 
+  For Each f In Dir(coverdir, "*.jpg")
+    If InStr(f, ".jpg_thumbcache") > 0 Then Continue 'skip check on thumbnails
+    If Not covers_referenced.Exist(coverdir & f) Then
+      global.mydebug(f & " seems not referenced, safe to delete")
+      Try Kill (coverdir & f)
+    Endif
+  Next
+End
 

@@ -3,7 +3,7 @@
 Private CURRENTURLIDX As Integer = 0
 Private PREVLINK As String = ""
 Private SEARCHING As Boolean = True
-Private blackdomains As String = "lyrics007.com;cityguideny.com;youtube.com;google.com;bing.com;yahoo.com;google.com;twitter.com;facebook.com;amazon.com"
+Private blackdomains As String = "wikipedia.org;cduniverse.com;last.fm;lyrics007.com;cityguideny.com;youtube.com;google.com;bing.com;yahoo.com;google.com;twitter.com;facebook.com;amazon.com"
 Private baddomains As String = "sweetslyrics.com;lyricsfreak.com;lyricsondemand.com;lyricsbox.com;lyricsreg.com;lyricsty.com;lyrics007.com;mp3lyrics.org;lyrster.com;nl.visit-it.com;supermusic.cz;songmeanings.net;loglar.com;lyyyrics.blogas.lt;lyrics007.com"
 
 
@@ -72,9 +72,13 @@ Private Sub GetAndShow(artist As String, song As String)
   Dim blackfound As Boolean = False
   Dim blackdomain As String
 
-
-  Dim i As Integer
+  Dim i, j As Integer
   Dim urls As New String[]
+  
+  Dim namepath, titleword As String
+  
+  Dim wordmatch As Boolean = True
+  
 
   'Debug strip("<td width=\"311px\" bgcolor=\"#C9EAFF\"><a href=\" title=\"Lyrics\"><img src=\"ilogo.jpg\" border=\"0\" width=\"311\" height=\"108\" alt=\"Lyrics\"></a></td>", "<a href", "</a>")
   'Return
@@ -85,7 +89,6 @@ Private Sub GetAndShow(artist As String, song As String)
   
   artist = CGI.Encode(artist)
   song = CGI.Encode(song)
-  
   Me.show
   Wait
   Me.mouse = Mouse.wait
@@ -125,6 +128,7 @@ Private Sub GetAndShow(artist As String, song As String)
     
   googleurl = "https://duckduckgo.com/html/?q=" & snippet
   gresults &= httpget(googleurl, "/tmp/debug")
+
   global.myDebug(googleurl)
   Try resultlines = Split(gresults, "<", "", True)
   If Error Then
@@ -132,16 +136,23 @@ Private Sub GetAndShow(artist As String, song As String)
     Me.mouse = Mouse.Normal
     Return
   Endif
+  
+  For j = 0 To resultlines.count - 1
+    resultlines[j] = CGI.Decode(resultlines[j])
+  Next
+  
   For Each myline In resultlines
     blackfound = False
-    If myline Like "*href*http://*" Then
+    If myline Like "*href*http?://*" Then
       For Each blackdomain In Split(blackdomains, ";") 'strip out black domains
+                                                        
         If myline Like "*" & blackdomain & "*" Then
           blackfound = True
           ' global.myDebug( "blackdomain found: " & blackdomain)
           ' global.myDebug( "Into this line: " & myline)
           Break
         Endif
+        i = i + 1
       Next 'blackdomain
       If Not (blackfound) Then
         mystart = InStr(myline, "http", 0)
@@ -163,7 +174,7 @@ Private Sub GetAndShow(artist As String, song As String)
       Endif
     Endif
   Next
-  Me.mouse = Mouse.normal
+  Try Me.mouse = Mouse.normal
   'move bad domains to the end and *lyric* to the begin
   For Each blackdomain In Split(baddomains, ";")
     For i = 0 To urls.max
@@ -175,9 +186,31 @@ Private Sub GetAndShow(artist As String, song As String)
       Endif
     Next
   Next
+
+  'move best urls on top; by now a best url is one that have the song title as last entry in URL path.
+  For i = 0 To urls.max
+    namepath = Lower(File.Name(urls[i]))
+    wordmatch = True
+    For Each titleword In Split(song, " .-,;_")
+      If InStr(namepath, Lower(titleword)) = 0 Then 
+        wordmatch = False
+        Break
+      Endif
+    Next
+    If wordmatch Then
+      urls.add(urls.Extract(i)[0], 0)
+    Endif
+  Next
+  
+  
+  
+  combourls.clear
   For i = 0 To urls.Max
     combourls.Add(urls[i])
   Next
+
+  
+  
   SEARCHING = False
   NextBTN_MouseDown()
 End
@@ -214,7 +247,8 @@ Public Sub NextBTN_MouseDown()
     'webcontent = Replace(webcontent, "�", " ")
     global.myDebug(myurl)
 
-    textlabel1.text = webcontent
+    Try textlabel1.text = webcontent
+    If Error Then Return
     TextLabel1.adjust
     panel1.Scroll(0, 0)
     Me.mouse = Mouse.normal

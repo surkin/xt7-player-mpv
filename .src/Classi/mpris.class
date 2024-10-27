@@ -1,28 +1,41 @@
 ' Gambas class file
 
-' 
-
 Inherits DBusObject
 
+
 Create Static
+' Event org_freedesktop_DBus_Properties_PropertiesChanged(args As String[])
 
 
-''org.freedesktop.Dbus.Introspectable-------------------------------------------------------------------------------------------------------------
-' 
-' Public Function org_freedesktop_Dbus_Introspectable_Introspect() As String
-'   Return "NULL"
-' End
-' 
-' ''org.freedesktop.Dbus.Properties-----------------------------------------------------------------------------------------------------------------
-' Public Function org_freedesktop_Dbus_Properties_Get(Myinterface As String, MyProperty As String) As String
-'   Return "NULL"
-' End
-' Public Function org_freedesktop_Dbus_Properties_Set(Myinterface As String, MyProperty As String) As String
-'   Return "NULL"
-' End
-' Public Function org_freedesktop_Dbus_Properties_GetAll(Myinterface As String, MyProperty As String) As String[]
-'   Return "NULL"
-' End
+Public prevplay As String = "Playing"
+
+Public Sub emit_propertychanged()
+  Dim properties_changed As New Collection
+  Dim metadata As Collection
+  Dim emptyc As New Collection
+  metadata = org_mpris_MediaPlayer2_Player_Metadata_Read()
+  'properties_changed.Add(metadata, "metadata")
+  If prevplay = "Playing" Then
+    prevplay = "Paused"
+      Else
+     prevplay = "Playing"
+    Endif
+  properties_changed.Add(prevplay, "PlaybackStatus")
+
+  DBus["/org/mpris/MediaPlayer2"].Raise(mpris, "org.freedesktop.DBus.Properties.PropertiesChanged", ["org.mpris.MediaPlayer2.Player", properties_changed, emptyc])
+  
+  DBus["/org/mpris/MediaPlayer2"].Raise(mpris, "org.mpris.MediaPlayer2.Player.Seeked", [CInt(Timer)])
+  
+  
+End
+
+Public delay_timer As New Timer
+Private delay_timer_method As String
+Private delay_timer_param As String
+
+'The name of the event must be the normalized name of the interface, followed by an underscore and the normalized name of the signal.
+Event org_freedesktop_DBus_Properties_PropertiesChanged(out1 As String, out2 As Collection, out3 As Collection)
+Event org_mpris_MediaPlayer2_Player_Seeked(position As Integer)
 
 
 ''ORG.MPRIS.MEDIAPLAYER2-----------------------------------------------------------------------------------------------------------------
@@ -35,38 +48,47 @@ Property Read org_mpris_MediaPlayer2_SupportedUriSchemes As String[]
 Property Read org_mpris_MediaPlayer2_SupportedMimeTypes As String[]
  
 Function org_mpris_MediaPlayer2_CanQuit_Read() As Boolean
+  'debug "Dbus"
   Return True
 End
 
 Function org_mpris_MediaPlayer2_CanRaise_Read() As Boolean
+  'debug "Dbus"
   Return True
 End
 
 Function org_mpris_MediaPlayer2_HasTrackList_Read() As Boolean
+  'debug "Dbus"
   Return True
 End
 
 Function org_mpris_MediaPlayer2_Identity_Read() As String
-  Return "xt7-player"
+  'debug "Dbus"
+  Return "xt7-player-mpv"
 End
  
 Function org_mpris_MediaPlayer2_DesktopEntry_Read() As String
-  Return "xt7-player"
+  'debug "Dbus"
+  Return "xt7-player-mpv"
 End
 
 Function org_mpris_MediaPlayer2_SupportedUriSchemes_Read() As String[]
+  'debug "Dbus"
   Return ["file", "http"]
 End
  
 Function org_mpris_MediaPlayer2_SupportedMimeTypes_Read() As String[]
+  'debug "Dbus"
   Return ["application/ogg", "application/x-ogg", "application/x-ogm-audio", "audio/aac", "audio/mp4", "audio/mpeg", "audio/mpegurl", "audio/ogg", "audio/vnd.rn-realaudio", "audio/vorbis", "audio/x-flac", "audio/x-mp3", "audio/x-mpeg", "audio/x-mpegurl", "audio/x-ms-wma", "audio/x-musepack", "audio/x-oggflac", "audio/x-pn-realaudio", "audio/x-scpls", "audio/x-speex", "audio/x-vorbis", "audio/x-vorbis+ogg", "audio/x-wav", "video/x-ms-asf", "x-content/audio-player"]
 End
 
 Public Function org_mpris_MediaPlayer2_Raise() 
-  FMain.raise
+  'debug "Dbus"
+  FMain.Show()
 End
 
  Public Function org_mpris_MediaPlayer2_Quit()
+  'debug "Dbus"
     'we cannot just quit the application, because it would unregister
     'dbus before we exit this kifunction, leading to a runtime error
     'so use a timer to program a delayed quit.
@@ -78,7 +100,7 @@ Property Read org_mpris_MediaPlayer2_Player_PlaybackStatus As String
 Property org_mpris_MediaPlayer2_Player_LoopStatus As String
 Property org_mpris_MediaPlayer2_Player_Rate As Float
 Property org_mpris_MediaPlayer2_Player_Shuffle As Boolean
-Property Read org_mpris_MediaPlayer2_Player_Metadata As String[] 'controllare bene il tipo di dato
+Property Read org_mpris_MediaPlayer2_Player_Metadata As Collection
 Property org_mpris_MediaPlayer2_Player_Volume As Float
 Property Read org_mpris_MediaPlayer2_Player_Position As Long
 Property Read org_mpris_MediaPlayer2_Player_MinimumRate As Float
@@ -92,9 +114,17 @@ Property Read org_mpris_MediaPlayer2_Player_CanControl As Boolean
 
 
 Function org_mpris_MediaPlayer2_Player_PlayBackStatus_Read() As String
+  Dim processrunning As Boolean = False
+  'debug "Dbus"
+  Return "Playing"
+  Try processrunning = FMain.mplayer.ProcessRunningOvr() 
+  If Not processrunning Then Return "Stopped"
+  If FMain.mplayer.paused(True) Then Return "Paused"
+  Return "Playing"
 End
 
 Function org_mpris_MediaPlayer2_Player_LoopStatus_Read() As String
+'debug "Dbus"
   If FMain.TogglePls.value Then 
     Return "Playlist"
       Else
@@ -103,79 +133,135 @@ Function org_mpris_MediaPlayer2_Player_LoopStatus_Read() As String
 End
 
 Function org_mpris_MediaPlayer2_Player_LoopStatus_Write(p As String)
+'debug "Dbus"
   FMain.TogglePls.value = (p = "Playlist")
 End
 
 Function org_mpris_MediaPlayer2_Player_Rate_Read() As Float
+  Dim out As String
+  Dim fout As Float
+  'debug "Dbus"
+  If Not FMain.mplayer.ProcessRunningOvr() Then Return 1
+  out = FMain.mplayer.get_property_mpv("speed",,, True)
+  Try fout = CFloat(out)
+  If Not Error Then Return fout
+  Return 1
 End
 
 Function org_mpris_MediaPlayer2_Player_Rate_Write(p As Float) 
+  'debug "Dbus"
 End
 
 Function org_mpris_MediaPlayer2_Player_Shuffle_Read() As Boolean
+  'debug "Dbus"
   Return FMain.ShufflePls.value
 End
 
 Function org_mpris_MediaPlayer2_Player_Shuffle_Write(p As Boolean) 
+  'debug "Dbus"
   FMain.ShufflePls.value = p
 End
 
-Function org_mpris_MediaPlayer2_Player_Metadata_Read() As String[]
+Function org_mpris_MediaPlayer2_Player_Metadata_Read() As Collection
+ Dim out As Collection
+ 
+ out = New Collection
+ out["xesam:url"] = "/my/track_" & CString(Rnd(0, 10000)) 'FMain.mplayer.getP("fullpath")
+ out["mpris:trackid"] = "/path/to/dbus/boh" 'probably wrong type, should be "objectpath"
+
+ If FMain.mplayer.ProcessRunningOvr() Then 
+   Try out["mpris:length"] = CLong(FMain.mplayer.get_property_mpv("=duration", True, 1, True) * 1000000)
+ Endif
+  
+ Return out
+
 End
 
 Function org_mpris_MediaPlayer2_Player_Volume_Read() As Float
+'debug "Dbus"
    Return (FMain.SaveVolumeSlider.value * (100 Div FMain.SaveVolumeSlider.MaxValue))
 End
 
-Function org_mpris_MediaPlayer2_Player_Volume_Write(p As Float)
-  If p <= 0 Then
-    FMain.volume_set("0")
-      Else
-    FMain.volume_set(CStr(p * 100))
-  Endif
-End
+
 
 Function org_mpris_MediaPlayer2_Player_Position_Read() As Long
+  'debug "Dbus"
+  If Not (FMain.mplayer.ProcessRunningOvr()) Then Return
+  Return FMain.mplayer.CurrentTime(True) * 1000000
 End
 
 Function org_mpris_MediaPlayer2_Player_Position_Write() As Long
+'debug "Dbus"
 End
 
 Function org_mpris_MediaPlayer2_Player_MinimumRate_Read() As Float
+  Return "0.01"
+'debug "Dbus"
 End
 
 Function org_mpris_MediaPlayer2_Player_MaximumRate_Read() As Float
+  Return "1000"
+'debug "Dbus"
 End
 
 Function org_mpris_MediaPlayer2_Player_CanGoNext_Read() As Boolean
+'debug "Dbus"
+  Return True
 End
 
 Function org_mpris_MediaPlayer2_Player_CanGoPrevious_Read() As Boolean
+'debug "Dbus"
+  Return True
 End
 
 Function org_mpris_MediaPlayer2_Player_CanPlay_Read() As Boolean
+'debug "Dbus"
+  Return True
 End
 
 Function org_mpris_MediaPlayer2_Player_CanPause_Read() As Boolean
+'debug "Dbus"
+  Return True
 End
 
 Function org_mpris_MediaPlayer2_Player_CanSeek_Read() As Boolean
+'debug "Dbus"
+  Return True
 End
 
 Function org_mpris_MediaPlayer2_Player_CanControl_Read() As Boolean
+'debug "Dbus"
+  Return True
 End
 
+Public Function delay_timer_timer()
+  'this SuperHack is necessary because the stupid kde mediaplayer plasmoid does not wait 'enough' for an answer
+  'after calling a method, and the stupid gambas dbus component tries indefinitely to send the answer back.
+  'so if the method call takes too long, xt7 hangs.
+  'so we exit immediately from the calling method function and delay the real execution with this timer.
+ Select Case Lower(delay_timer_method)
+    Case "next"
+       FMain.SelectNext(False, FMain.GetActivePlayQueue())
+    Case "prev"
+        FMain.ButtonPrev_click()
+    Case Else
+      Print "Questo è impossibile!"
+  End Select
+End
 
 
 Public Function org_mpris_MediaPlayer2_Player_Next()
-  FMain.SelectNext(False, FMain.GetActivePlayQueue())
+  delay_timer_method = "next"
+  delay_timer.trigger
 End
 
 Public Function org_mpris_MediaPlayer2_Player_Previous()
-  FMain.ButtonPrev_click()
+  delay_timer_method = "prev"
+  delay_timer.trigger
 End
 
 Public Function org_mpris_MediaPlayer2_Player_Pause()
+'debug "Dbus"
   If Not (FMain.mplayer.ProcessRunningOvr()) Then Return
 
     If FMain.mplayer.Paused() Then 
@@ -186,26 +272,43 @@ Public Function org_mpris_MediaPlayer2_Player_Pause()
 End
 
 Public Function org_mpris_MediaPlayer2_Player_PlayPause()
+'debug "Dbus"
    FMain.ButtonPlay_click()
 End
 
 Public Function org_mpris_MediaPlayer2_Player_Stop()
+'debug "Dbus"
   FMain.buttonstop_click()
 End
 
 Public Function org_mpris_MediaPlayer2_Player_Play()
+'debug "Dbus"
   If (FMain.mplayer.ProcessRunningOvr()) And (Not FMain.mplayer.paused()) Then Return 
   FMain.ButtonPlay_click()
 End
 
 Public Function org_mpris_MediaPlayer2_Player_Seek(p As Long)
+  global.myDebug("DBUS")
   FMain.mplayer.do_seek_by(p Div 1000000, FsForm.fullscreen)
 End
 
-Public Function org_mpris_MediaPlayer2_Player_SetPosition(o As Long, p As Long)
-  global.myDebug("Uninmplemented")
+Public Function org_mpris_MediaPlayer2_Player_SetPosition(o As String, us As String)
+  'ignore o by now...
+  Dim seconds As Integer = (CInt(us) Div 1000000)
+  Try FMain.mplayer.do_seek_to(seconds, False, False)
 End
 
 Public Function org_mpris_MediaPlayer2_Player_OpenUri(p As String)
+  global.myDebug("DBUS")
   FMain.Play(p)
 End
+
+Function org_mpris_MediaPlayer2_Player_Volume_Write(p As Float)
+'debug "Dbus"
+  If p <= 0 Then
+    FMain.volume_set("0")
+      Else
+    FMain.volume_set(CStr(p * 100))
+  Endif
+End
+

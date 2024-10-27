@@ -15,8 +15,16 @@ Public Sub Start()
     Try global.arg_profile = Args.get("p", "profile-temp", ("Use specified profile only for this session"), "profilename")
     Try global.arg_append = Args.Has("a", "append", ("Append the file to the playlist of a running instance"))
     Try global.arg_new_instance = Args.Has("n", "new-instance", ("Play in a new instance even if one is already running"))
+    Try global.arg_start_tray = Args.Has("t", "tray", ("Start minimized in the tray"))
     Try global.arg_debug = Args.Has("v", "verbose", ("Enable debug output"))
+    If global.arg_debug Then DBus.Debug = True
+    'DBus.Debug = True 'cercami
+    
   Try global.arg_file = Args.end()[0]
+
+  Try global.arg_debug = global.arg_debug Or Application.Env["XT7_DEBUG"] = "1"
+  If global.arg_file = "" Then Try global.arg_file = Application.Env["XT7_FILE"] 
+
   
   If (global.arg_file <> "") And Left(global.arg_file) <> "/" Then
     'convert relative to absolute path
@@ -48,6 +56,9 @@ Public Sub Start()
   
   Try Global.Center(Fmain, Me)
   FMain.maininit()
+
+       'Dim mymplayer As New MplayerClass
+        'mymplayer.options_info()
 
 End
 
@@ -162,7 +173,6 @@ End
 '   panel1.h = TxtH
 '   panel2.w = ytpanel.w
 ' 
-'   Debug ytpanel.w, panel2.w
 '   panel1.w = panel2.w - ytpic.w - (Desktop.scale * 2)
 ' 
 ' 

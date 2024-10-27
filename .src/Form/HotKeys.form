@@ -1,7 +1,7 @@
 # Gambas Form File 3.0
 
 { Form Form
-  MoveScaled(0,0,87.5714,60)
+  MoveScaled(0,0,115,95)
   ToolTip = ("Double click on a cell to enter a new hotkey.\nSelect a cell and hit \"del\" to delete one.")
   Text = ("Hotkeys")
   Icon = Picture["icon:/small/shortcut"]
@@ -25,10 +25,11 @@
     }
   }
   { TabStrip1 TabStrip
-    MoveScaled(1,1,63,53)
+    MoveScaled(1,0,113,89)
+    Tracking = True
     Expand = True
     Arrangement = Arrange.Vertical
-    Count = 2
+    Count = 3
     Index = 0
     Text = ("Local Hotkeys")
     { Panel1 Panel
@@ -38,41 +39,57 @@
       Arrangement = Arrange.Fill
       Border = Border.Plain
       { HotKeysGrid GridView
-        MoveScaled(0,0,45,31)
+        MoveScaled(0,0,43,31)
+        Tracking = True
         Expand = True
         Border = False
         Mode = Select.Single
+        ShowCursor = True
         Header = GridView.Both
       }
     }
+    { Separator1 Separator
+      MoveScaled(2,35,56,1)
+    }
+    { Panel3 Panel
+      MoveScaled(1,36,58,4.5714)
+      Arrangement = Arrange.Fill
+      AutoResize = True
+      Margin = True
+      { dblclick_fs_checkbox CheckBox
+        MoveScaled(0,1,31,1)
+        AutoResize = True
+        Text = ("DoubleClick to switch fullscreen state")
+        Value = CheckBox.True
+      }
+    }
     { HBox1 HBox
-      MoveScaled(0,42,59,6)
+      MoveScaled(0,42,59,7)
       Spacing = True
       Margin = True
-      Padding = 6
+      { VBox1 VBox
+        MoveScaled(1,1,4,4.5714)
+        Expand = True
+      }
       { Button3 Button
-        MoveScaled(0,1,19,4)
+        MoveScaled(0,1,19,4.5714)
         AutoResize = True
         Text = ("Print grid code to console")
       }
-      { VBox1 VBox
-        MoveScaled(1,1,4,4)
-        Expand = True
-      }
       { Button2 Button
-        MoveScaled(17,1,13.5714,4)
+        MoveScaled(17,1,13.5714,4.5714)
         AutoResize = True
         Text = ("Clear")
         Picture = Picture["icon:/16/clear"]
       }
       { Button1 Button
-        MoveScaled(32,1,13.5714,4)
+        MoveScaled(32,1,13.5714,4.5714)
         AutoResize = True
         Text = ("Defaults")
         Picture = Picture["icon:/16/undo"]
       }
       { SaveBTN Button
-        MoveScaled(45,1,13.5714,4)
+        MoveScaled(45,1,13.5714,4.5714)
         ToolTip = ("Save and use new settings")
         AutoResize = True
         Text = ("Save")
@@ -80,15 +97,47 @@
       }
     }
     Index = 1
+    Text = ("xt7 -> mpv translation")
+    { VBox3 VBox
+      MoveScaled(1,2,109,79)
+      Expand = True
+      Margin = True
+      { Label1 Label
+        MoveScaled(1,0,105,6)
+        Font = Font["Bold,+1"]
+        AutoResize = True
+        Text = ("Translate Xt7 hotkeys into mpv hotkeys")
+      }
+      { Label2 Label
+        MoveScaled(1,6,103,7)
+        Font = Font["Italic,-1"]
+        Padding = 12
+        AutoResize = True
+        Text = ("Since xt7 handles input key events, mpv scripts can't know if a key has been pressed or not.\nHere you can associate and send an hotkey handled by xt7 to an hotkey handled by mpv (and so by mpv scripts).\nThis is also a convenient way to change an mpv script input hotkeys to your likings.")
+      }
+      { gridtranslate GridView
+        MoveScaled(3,15,102,59)
+        Tracking = True
+        Expand = True
+        Mode = Select.Single
+        ShowCursor = True
+        Header = GridView.Both
+      }
+    }
+    Index = 2
     Text = ("Global Hotkeys")
+    { CheckBoxEnableGlobalHotkeys CheckBox
+      MoveScaled(2,2,57,4.5714)
+      Text = ("Enable Global Hotkeys")
+    }
     { Panel2 Panel
-      MoveScaled(0,0,45,28)
+      MoveScaled(3,11,45,28)
       Background = Color.TextBackground
       Expand = True
       Arrangement = Arrange.Fill
       Border = Border.Plain
       { GlobalHotKeysGrid GridView
-        MoveScaled(0,0,44,27)
+        MoveScaled(-2,1,44,27)
         Expand = True
         Border = False
         Mode = Select.Single
@@ -102,11 +151,11 @@
       Margin = True
       Padding = 6
       { VBox2 VBox
-        MoveScaled(1,1,4,4)
+        MoveScaled(1,1,4,4.5714)
         Expand = True
       }
       { Button4 Button
-        MoveScaled(42,1,17,4)
+        MoveScaled(42,1,17,4.5714)
         Text = ("Clear")
         Picture = Picture["icon:/16/clear"]
       }

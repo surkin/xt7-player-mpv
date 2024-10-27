@@ -5,23 +5,25 @@
   Visible = False
   Text = ("Heurylics")
   Icon = Picture["icon:/22/microphone"]
+  Persistent = True
   Arrangement = Arrange.Vertical
   Margin = True
   { Panel2 HBox
-    MoveScaled(0,5,86,3)
+    MoveScaled(0,5,86,4.5714)
     AutoResize = True
+    Margin = True
     { NextBTN Button
-      MoveScaled(0,0,9,4)
+      MoveScaled(0,0,9,4.5714)
       AutoResize = True
       Text = ("Next")
       Picture = Picture["icon:/22/next"]
       Border = False
     }
     { Separator3 Separator
-      MoveScaled(11,0,2,4)
+      MoveScaled(11,0,2,4.5714)
     }
     { ComboUrls ComboBox
-      MoveScaled(13,0,57,4)
+      MoveScaled(13,0,57,3.1429)
       Expand = True
     }
     { ButtonZoomOut Button
@@ -36,24 +38,26 @@
     }
   }
   { Panel1 ScrollView
-    MoveScaled(4,10,80,31)
+    MoveScaled(3,9,80,31)
     Background = Color.TextBackground
     Expand = True
     { TextLabel1 TextLabel
-      MoveScaled(2,1,45,48)
+      MoveScaled(4,2,45,48)
       Expand = True
-      Text = ("Please wait...")
+      Text = ("Please wait") & "..."
     }
   }
   { TextArea1 TextArea
-    MoveScaled(4,43,80,34)
+    MoveScaled(3,40,80,34)
     Visible = False
     Expand = True
     Text = ("TextArea1")
   }
   { Panel3 HBox
-    MoveScaled(1,77,86,3)
+    MoveScaled(1,77,86,4)
     AutoResize = True
+    Spacing = True
+    Margin = True
     { Label1 Label
       MoveScaled(0,0,5,4)
       AutoResize = True
@@ -62,6 +66,7 @@
     { textartist TextArea
       MoveScaled(15,0,17,4)
       Expand = True
+      Alignment = Align.Center
       ScrollBar = Scroll.None
     }
     { Separator1 Separator
@@ -75,6 +80,7 @@
     { textsong TextArea
       MoveScaled(43,0,25,4)
       Expand = True
+      Alignment = Align.Center
       ScrollBar = Scroll.None
     }
     { Separator2 Separator
@@ -85,7 +91,6 @@
       AutoResize = True
       Text = ("New search")
       Picture = Picture["icon:/22/find"]
-      Border = False
     }
   }
 }

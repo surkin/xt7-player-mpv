@@ -1,5 +1,6 @@
 ' Gambas class file
 
+
 'Copyright (C) 2007, 2008 Antonio Orefice
 ' Gambas class file
 Public AlreadyLoaded As Boolean = False 'true if the form loaded it's settings from disk at least one time
@@ -9,9 +10,14 @@ Public TimesLoaded As Integer = 0 'Count how many times the form has been loaded
 
 Private LastDirectory As String = ""
 
-
-
-Public UntranslatedTabNames As String[] = ["VIDEO", "AUDIO", "LIBRARY", "TWEAKS", "DVD", "NETWORK", "LANGUAGE", "MISC"]
+Public Struct MpvOptionInfo 
+  name As String
+  type As String
+  default_value As Variant
+  min As Variant
+  max As Variant
+  choices As String[]
+End Struct
 
 Public Sub FirstLoadIfNeeded()
   If Not initdone Then Init()
@@ -62,7 +68,6 @@ Private Sub OptionFromTab()
     Endif
   Next 'i
   Try optionslist[OptionsList.Item.Key].selected = True
-
 End
 
 Public Sub TabStrip1_Click()
@@ -77,16 +82,36 @@ Public Sub Init()
   Try Optionslist.Add("Audio", ("Audio"), Stock["large/audio"])
   Try Optionslist.Add("Screen", ("Screen"), Stock["large/screen"])
   Try Optionslist.Add("Library", ("Library"), Stock["large/book"])
+  Try Optionslist.Add("Cache", ("Cache"), Stock["large/next"])
   Try Optionslist.Add("Tweaks", ("Tweaks"), Stock["large/wizard"])
   Try Optionslist.Add("CD/DVD", ("CD/DVD"), Stock["large/cdrom"])
   Try Optionslist.Add("Network", ("Network"), Stock["large/network"])
   Try Optionslist.Add("DVB-T", ("DVB-T"), Picture["GeneralDVBT.png"])
   Try Optionslist.Add("Language", ("Language"), Stock["large/language"])
   Try Optionslist.Add("Misc", ("Misc"), Stock["large/options"])
-  Try Optionslist.Add("User options", ("User options"), Stock["large/terminal"])
+  Try Optionslist.Add("User scripts", ("User scripts"), Stock["large/terminal"])
+  Try Optionslist.Add("User options", ("User options"), Stock["large/script"])
   Try Optionslist.Add("Style", ("Style"), Stock["large/color"])
   DrawFiltersGui()
+  
+  NoParseVisType2.Add("0 - Disabled")
+  NoParseVisType2.Add("1 - Waves over spectrum")
+  NoParseVisType2.Add("2 - Waves and spectrum")
+  NoParseVisType2.Add("3 - Spectrum")
+  NoParseVisType2.Add("4 - Frequencies")
+  NoParseVisType2.Add("5 - Vectorscope")
+  
+  If RestorePlaybackcombobox.text = "" Then RestorePlaybackcombobox.text = ("4 - Yes, but only for video files")
+  
   InitDone = True
+End
+
+Public Sub dynaobj_change()
+  global.ManageNotifies_Change(Last, Me)
+End
+
+Public Sub dynaobj_click()
+  global.ManageNotifies_click(Last, Me)
 End
 
 
@@ -97,40 +122,60 @@ Private Sub DrawFiltersGui()
 
   AllParams.Clear
 
+  '-volume-max <100.0-1000.0>
+    AllParams.add(["RANGE", ("Maximum Amplification"), "100", "100", "1000", "volume000max", ("Allows volume over 100%")])
+    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("Set the maximum amplification level (disabling this means 130).\n A value of 130 will allow you to adjust the volume up to a maximum of about double the current level.\n mpv option: -volume-max"),,, Me)
+    Try Object.SetProperty(Me.Controls["volume000max.CheckBox"], "value", True) 'enabled by default
+    AllParams.Clear
+
     ' AllParams.Add(["CHOOSE", ("Hardware decoding"), "no", "auto", "vdpau", "vaapi", "vaapi-copy", "hwdec", ""])
     ' Global.DrawGui(AllParams, ("Video"), Tabstrip1, Switchable, ("Specify the hardware video decoding API that should be used if possible.\nWhether hardware decoding is actually done depends on the video  codec.\nIf hardware decoding is not possible, mpv will fall back on software decoding.  \n mpv option: hwdec"))
     ' AllParams.Clear
 
   '-ad-lavc-ac3drc=<level>
     AllParams.Add(["ROCHOOSE", ("AC3 dynamic range compression"), "1.0 - full compression", "0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1", "0.0 - no compression", "ad000lavc000ac3drc", "AC-3 audio streams only: make loud passages more silent and vice versa"])
-    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("Select  the  Dynamic  Range Compression level for AC-3 audio streams.\n<level> is a float value ranging from 0 to 1, where 0 means no compression\nand 1 means full compression (make loud passages more silent and vice versa).\nThis option only shows an effect if the AC-3 stream contains\nthe required range compression information.\nmpv option: --ad-lavc-ac3drc=<level>"))
+    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, (("Select  the  Dynamic  Range Compression level for AC-3 audio streams.\n<level> is a float value ranging from 0 to 1, where 0 means no compression\nand 1 means full compression (make loud passages more silent and vice versa).\nThis option only shows an effect if the AC-3 stream contains\nthe required range compression information.\nmpv option: --ad-lavc-ac3drc=<level>")),,, Me)
     Try Object.SetProperty(Me["ad000lavc000ac3drc.CheckBox"], "value", True)
     AllParams.Clear
     
   '-channels <number> (also see -af channels) 
-    AllParams.Add(["ROCHOOSE", ("Output Channels"), "2 - Stereo", "4 - Surround", "6 - Full 5.1", "8 - Full 7.1", "audio000channels", ""])
-    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("Request the number of playback channels (default: 2).\n This is usually only important when playing videos with AC-3 audio (like DVDs).\n mpv option: audio-channels"))
+    AllParams.Add(["CHOOSE", ("Output Channels"), "auto", "mono", "stereo", "5.1", "7.1", "audio000channels", ""])
+    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("Request the number of playback channels (default: 2).\n This is usually only important when playing videos with AC-3 audio (like DVDs).\n mpv option: audio-channels"),,, Me)
     Try Object.SetProperty(Me["audio000channels.CheckBox"], "value", True)
     If Error Then global.myDebug("EE: Cannot set default value audio000channels.CheckBox = true")
     Try Object.SetProperty(Me["audio000channels.ComboBox"], "text", "2 - Stereo")
     If Error Then global.myDebug("EE: Cannot set default value audio000channels.Combobox = 2 - Stereo")
     AllParams.Clear
+
     
-  '-softvol
-    AllParams.add(["ROCHOOSE", ("Software Volume control"), "no", "yes", "auto", "softvol", "Uses the software mixer instead of the hardware one."])
-    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("Force the use of the software mixer, instead of using the sound card mixer.\n mpv option: softvol"))
+  'Replaygain...
+     AllParams.Add(["ROCHOOSE", ("Replaygain"), "no", "track", "album", "replaygain", "Replaygain options, they works only if the track has replaygain metadata"])
+     Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("Adjust volume gain according to the track-gain or album-gain replaygain value stored in the file metadata"),,, Me)
+     AllParams.Clear   
+     
+  'Replaygain preamp
+    AllParams.add(["RANGE", ("Replaygain preamplification (dB)"), "-10", "0", "15", "replaygain000preamp", ""])
+    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("Pre-amplification gain in dB to apply to the selected replaygain gain"),,, Me)
     AllParams.Clear
-      
-  '-softvol-max <10.0-1000.0>
-    AllParams.add(["RANGE", ("Maximum Amplification"), "100", "100", "1000", "softvol000max", "Allows volume over 100%, does not work if softvol is set to 'no'"])
-    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("Set the maximum amplification level in percent (default: 110).\n A value of 200 will allow you to adjust the volume up to a maximum of double the current level.\n mpv option: -softvol-max"))
-    Try Object.SetProperty(Me.Controls["softvol000max.CheckBox"], "value", True) 'enabled by default ;)
-    AllParams.Clear
+
+  'Replaygain clip
+     AllParams.Add(["ROCHOOSE", ("Prevent replaygain clip"), "yes", "no", "replaygain000clip", ""])
+     Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("Prevent clipping caused by replaygain by automatically lowering the gain"),,, Me)
+     AllParams.Clear       
+    
     
   '-speed <0.01-100>
     AllParams.Add(["CHOOSE", ("Initial speed"), "0.5 #-12", "0.529731547179648 #-11", "0.561231024154687 #-10", "0.594603557501361 #-9", "0.629960524947437 #-8", "0.667419927085017 #-7", "0.707106781186548 #-6", "0.749153538438341 #-5", "0.7937005259841 #-4", "0.840896415253715 #3-", "0.890898718140339 #-2", "0.943874312681693 #-1", "1 #0", "1.05946309435295 #+1", "1.12246204829593 #+2", "1.18920711498136 #+3", "1.2599210498647 #+4", "1.33483985413008 #+5", "1.4142135623223 #+6", "1.4983070768139 #+7", "1.58740105189218 #+8", "1.68179283041682 #+9", "1.78179743617402#+10", "1.88774862523908 #+11", "2 #+12", "speed", ("Set initial playback tempo/pitch")])
-    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("#-12..#+12 are semitones.\n See also 'speed' under 'scaletempo' filter in chains window.\n mpv option: speed"))
+    'Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("#-12..#+12 are semitones.\n See also 'speed' under 'scaletempo' filter in chains window.\n mpv option: speed"),,, Me)
+    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("#-12..#+12 are semitones.\nmpv option: speed"),,, Me)
     AllParams.Clear
+
+    '-cookies
+    AllParams.add(["ROCHOOSE", ("Preserve pitch"), "yes", "no", "audio000pitch000correction", ("Keep pitch when changing speed")])
+    Global.DrawGui(AllParams, ("Audio"), Tabstrip1, Switchable, ("Mantain audio pitch when video speed is changed\nAvoid chipmunks voices."),,, Me)
+    Try Object.SetProperty(Me["audio000pitch000correction.CheckBox"], "value", True)
+    AllParams.Clear
+
 
   ' '-delay < sec >
   '   AllParams.add(["RANGEFLOAT", ("Audio Delay"), "-600", "0", "600", "delay", ("Seconds")])
@@ -149,7 +194,7 @@ Private Sub DrawFiltersGui()
 
   '-stop-xscreensaver
     AllParams.add(["SWITCH", "Stop screensaver", "Enabled", "stop000screensaver", ("Turns off xscreensaver at startup")])
-    Global.DrawGui(AllParams, ("Video"), Tabstrip1, Switchable, ("Turns off screensaver at startup and turns it on again on exit.\nUses XSS and XResetScreenSaver API.\nmpv option: -stop-xscreensaver"))
+    Global.DrawGui(AllParams, ("Video"), Tabstrip1, Switchable, ("Turns off screensaver at startup and turns it on again on exit.\nUses XSS and XResetScreenSaver API.\nmpv option: -stop-xscreensaver"),,, Me)
     AllParams.Clear
    
   ' '-aspect <ratio> (also see -zoom)
@@ -163,27 +208,17 @@ Private Sub DrawFiltersGui()
   '   Global.DrawGui(AllParams, ("Video"), Tabstrip1, Switchable, ("Force video Framerate.\n Will probably cause Audio/Video desync.\n mpv option: -fps"))
   '   AllParams.Clear
   ' 
-   '-autosync
-     AllParams.add(["RANGE", "autosync", "0", "30", "10000", "autosync", ("Gradually adjusts the A/V sync based on audio delay measurements.")])
-     Global.DrawGui(AllParams, ("Tweaks"), Tabstrip1, Switchable, ("Try  -autosync 30 to smooth out problems with sound drivers which do not implement a perfect audio delay measurement.\n [..] mpv option: autosync"))
-     AllParams.Clear
-     
-     '-mc
-     AllParams.add(["RANGEFLOAT", "mc", "0", "0.001", "1", "mc", ("maximum A-V sync correction per frame (in seconds)")])
-     Global.DrawGui(AllParams, ("Tweaks"), Tabstrip1, Switchable, ("maximum A-V sync correction per frame (in seconds)\n mpv options: -mc"))
-     AllParams.Clear
-     
 
 
 
   '-cookies
     AllParams.add(["SWITCH", ("Send cookies"), "DISABLED", "cookies", ("Only valid for http:// Uries")])
-    Global.DrawGui(AllParams, ("Network"), Tabstrip1, NotSwitchable, ("Send cookies to websites when playing http:// Uries,\n Cookie file must be in Netscape format.\n mpv option: cookies"))
+    Global.DrawGui(AllParams, ("Network"), Tabstrip1, NotSwitchable, ("Send cookies to websites when playing http:// Uries,\n Cookie file must be in Netscape format.\n mpv option: cookies"),,, Me)
     AllParams.Clear
   
   '-cookies-file <filename> (network only)
     AllParams.add(["FILEREQ", "\"" & "cookies.txt" & "\"" & " " & ("location") & ": ", "DIR", "cookies000file ", " "])
-    Global.DrawGui(AllParams, ("Network"), Tabstrip1, NotSwitchable, ("Specify cookies.txt location\n mpv option: cookies-file"))
+    Global.DrawGui(AllParams, ("Network"), Tabstrip1, NotSwitchable, ("Specify cookies.txt location\n mpv option: cookies-file"),,, Me)
     AllParams.Clear
 
   ' 
@@ -191,10 +226,20 @@ Private Sub DrawFiltersGui()
   '   AllParams.add(["SWITCH", ("prefer-ipv4"), "DISABLED", "prefer000ipv4", ("try ipv4 first")])
   '   Global.DrawGui(AllParams, ("Network"), Tabstrip1, NotSwitchable, ("Use IPv4 on network connections.  Falls back on IPv6 automatically.\n-prefer-ipv4 (network only)"))
   '   AllParams.Clear
+   
+   '-autosync
+     AllParams.add(["RANGE", "autosync", "0", "30", "10000", "autosync", ("Gradually adjusts the A/V sync based on audio delay measurements.")])
+     Global.DrawGui(AllParams, ("Tweaks"), Tabstrip1, Switchable, ("Try  -autosync 30 to smooth out problems with sound drivers which do not implement a perfect audio delay measurement.\n [..] mpv option: autosync"),,, Me)
+     AllParams.Clear
+     
+     '-mc
+     AllParams.add(["RANGEFLOAT", "mc", "0", "0.001", "1", "mc", ("maximum A-V sync correction per frame (in seconds)")])
+     Global.DrawGui(AllParams, ("Tweaks"), Tabstrip1, Switchable, ("maximum A-V sync correction per frame (in seconds)\n mpv options: -mc"),,, Me)
+     AllParams.Clear
 
   '-lavdopts threads
     AllParams.Add(["RANGE", "threads (lavdopts)", "0", "0", "16", "vd000lavc000threads", ("(MPEG-1/2 and H.264 only)")])
-    Global.DrawGui(allParams, ("Tweaks"), Tabstrip1, Switchable, ("Number of threads to use for decoding.\n0 means autodetect\nmpv option: vd-lavc-threads "))
+    Global.DrawGui(allParams, ("Tweaks"), Tabstrip1, Switchable, ("Number of threads to use for decoding.\n0 means autodetect\nmpv option: vd-lavc-threads "),,, Me)
     AllParams.Clear
       
   ' '-lavdopts lowres
@@ -205,12 +250,12 @@ Private Sub DrawFiltersGui()
 
   '-lavdopts fast
     AllParams.add(["SWITCH", "Fast (lavdopts)", "DISABLED", "vd000lavc000fast", ("(MPEG-2, MPEG-4, and H.264 only)")])
-    Global.DrawGui(AllParams, ("Tweaks"), Tabstrip1, Switchable, ("Enable optimizations which do not comply to the specification\nand might potentially cause problems, like simpler dequantization,\nsimpler motion compensation, assuming use of the  default\nquantization  matrix, assuming YUV 4:2:0 and skipping\na few checks to detect damaged bitstreams.\n mpv option: vd-lavc-fast"))
+    Global.DrawGui(AllParams, ("Tweaks"), Tabstrip1, Switchable, ("Enable optimizations which do not comply to the specification\nand might potentially cause problems, like simpler dequantization,\nsimpler motion compensation, assuming use of the  default\nquantization  matrix, assuming YUV 4:2:0 and skipping\na few checks to detect damaged bitstreams.\n mpv option: vd-lavc-fast"),,, Me)
     AllParams.Clear
 
   '-lavdopts skiploopfilter
     AllParams.Add(["ROCHOOSE", "Skiploopfilter (lavdopts)", "none", "default", "nonref", "bidir", "nokey", "all", "vd000lavc000skiploopfilter", ("(H.264 only)")])
-    Global.DrawGui(allParams, ("Tweaks"), Tabstrip1, Switchable, ("Skips the loop filter (AKA deblocking) during H.264 decoding.\nthis has a worse effect on quality\nBut at least for high bitrate HDTV this provides a big speedup\nwith  no visible quality loss.\n mpv option: vd-lavc-skiploopfilter"))
+    Global.DrawGui(allParams, ("Tweaks"), Tabstrip1, Switchable, ("Skips the loop filter (AKA deblocking) during H.264 decoding.\nthis has a worse effect on quality\nBut at least for high bitrate HDTV this provides a big speedup\nwith  no visible quality loss.\n mpv option: vd-lavc-skiploopfilter"),,, Me)
     AllParams.Clear
     
   ' '-noslices 
@@ -230,14 +275,9 @@ Private Sub DrawFiltersGui()
     
   '-framedrop
     AllParams.add(["ROCHOOSE", "FrameDrop", "vo", "no", "decoder", "decoder+vo", "framedrop", ("Skip frames to maintain A/V sync")])
-    Global.DrawGui(AllParams, ("Video"), Tabstrip1, Switchable, ("Skip displaying some frames to maintain A/V sync,\n or playing high framerate video on video output that have a lower upper framerate limit\nmpv option: -framedrop"))
+    Global.DrawGui(AllParams, ("Video"), Tabstrip1, Switchable, ("Skip displaying some frames to maintain A/V sync,\n or playing high framerate video on video output that have a lower upper framerate limit\nmpv option: -framedrop"),,, Me)
     AllParams.Clear
-    
-  '-framedrop
-    AllParams.add(["ROCHOOSE", ("Field dominance"), "auto", "auto", "top", "bottom", "field000dominance", ("Set the dominant field (for interlaced videos)")])
-    Global.DrawGui(AllParams, ("Video"), Tabstrip1, Switchable, ("Set first field for interlaced content\n mpv option: -field-dominance"))
-    AllParams.Clear
-    
+
   ' '-dvd-speed
   '   AllParams.add(["RANGE", ("Limit Drive Speed to"), "0", "0", "32", "dvd000speed", ("")])
   '   Global.DrawGui(AllParams, ("CD/DVD"), Tabstrip1, Switchable, ("Try to limit DVD speed. 0 means no change.\nNote that you need write access to dvd device\n mpv option: -dvd-speed"))
@@ -251,7 +291,7 @@ Private Sub DrawFiltersGui()
 
   '-hr-mp3-seek
     AllParams.add(["ROCHOOSE", ("High resolution seek"), "no", "absolute", "yes", "hr-seek", ("Hi-res MP3 seeking")])
-    Global.DrawGui(AllParams, ("Tweaks"), Tabstrip1, Switchable, ("Select when to use precise seeks that are not limited to keyframes. \nMay be slower\nmpv option: hr-seek"))
+    Global.DrawGui(AllParams, ("Tweaks"), Tabstrip1, Switchable, ("Select when to use precise seeks that are not limited to keyframes. \nMay be slower\nmpv option: hr-seek"),,, Me)
     AllParams.Clear
   
   
@@ -280,34 +320,42 @@ Public Function Parse(Optional WithDVD As Boolean = False) As MpvOption[]
   Dim Thescrollview As Object
   Dim TheBox As Object
   Dim AllOptions As String = ""
-  Dim hwdec_choice As String
+  Dim hwdec_choice, sScript As String
   Dim myopts As New MpvOption[]
+  Dim optnextvalue As String
+  Dim test As Variant
   Dim pt As String
   Previndex = Tabstrip1.index
   For i = 0 To TabStrip1.count - 1
-    TabStrip1.index = i
-    For Each TheScrollview In Tabstrip1.children
+    'TabStrip1.index = i
+    For Each TheScrollview In Tabstrip1[i].children
       For Each TheBox In TheScrollview.children
-        If Not (Upper(TheBox.name) Like "NOPARSE*") Then
-          For Each Option In TheBox.children
-            If (Option Is Checkbox) Then
-              If Option.value = True Then 'if checkbox is checked
-                If Option.next Is Label Then 'if the checkbox is alone then read just it
-                  myopts.Add(newopt(Replace(Split(Option.name, ".")[0], "000", "-"), "yes"))
-                    Else 'or else, if checkbox is not alone,parse the value of the next control
-                  If Option.next Is ComboBox Then 'combobox does not have value, but text
-                    myopts.Add(newopt(Replace(Split(Option.name, ".")[0], "000", "-"), Split(Option.next.text, " ")[0]))
-                    Else If Option.next Is StringFileReqClass Then 'file/dir Name, insert double quotes around
-                      myopts.Add(newopt(Replace(Split(Option.name, ".")[0], "000", "-"), "\"" & Option.next.value & "\""))
-                      AllOptions = AllOptions & " -" & Replace(Split(Option.name, ".")[0], "000", "-") & " " & "\"" & Option.next.value & "\""
-                      Else
-                    Try myopts.Add(newopt(Replace(Split(Option.name, ".")[0], "000", "-"), Option.next.value))
-                    Try AllOptions = AllOptions & " -" & Replace(Split(Option.name, ".")[0], "000", "-") & " " & Option.next.value
+        If Not (Upper(TheBox.name) Like "NOPARSE*") 
+          Try test = TheBox.children.count
+          If Not Error Then
+            For Each Option In TheBox.children
+              If (Option Is Checkbox) Then
+                If Option.value = True Then 'if checkbox is checked
+                  If Option.next Is Label Then 'if the checkbox is alone then read just it
+                    myopts.Add(newopt(Replace(Split(Option.name, ".")[0], "000", "-"), "yes"))
+                      Else 'or else, if checkbox is not alone,parse the value of the next control
+                    If Option.next Is ComboBox Then 'combobox does not have value, but text
+                      myopts.Add(newopt(Replace(Split(Option.name, ".")[0], "000", "-"), Split(Option.next.text, " ")[0]))
+                      Else If Option.next Is StringFileReqClass Then 'file/dir Name, insert double quotes around
+                        myopts.Add(newopt(Replace(Split(Option.name, ".")[0], "000", "-"), "\"" & Option.next.value & "\""))
+                        AllOptions = AllOptions & " -" & Replace(Split(Option.name, ".")[0], "000", "-") & " " & "\"" & Option.next.value & "\""
+                          Else If Option.next Is Spinbar Then 'Convert float to string
+                            Try myopts.Add(newopt(Replace(Split(Option.name, ".")[0], "000", "-"), Replace(CString(option.next.value), ",", ".")))
+                            Try AllOptions = AllOptions & " -" & Replace(Split(Option.name, ".")[0], "000", "-") & " " & Replace(CString(option.next.value), ",", ".")
+                        Else
+                      Try myopts.Add(newopt(Replace(Split(Option.name, ".")[0], "000", "-"), option.next.value))
+                      Try AllOptions = AllOptions & " -" & Replace(Split(Option.name, ".")[0], "000", "-") & " " & option.next.value
+                    Endif
                   Endif
                 Endif
               Endif
-            Endif
-          Next
+            Next
+          Endif
         Endif
       Next
     Next
@@ -315,6 +363,7 @@ Public Function Parse(Optional WithDVD As Boolean = False) As MpvOption[]
   Tabstrip1.index = PrevIndex
   'hardware decoding macro
   Try hwdec_choice = Split(NOPARSE_HwdecCombobox.text, " ")[0]
+  
   If Not Error Then
     myopts.Add(newopt("hwdec", Split(NOPARSE_HwdecCombobox.text, " ", "", True)[0]))
   Endif
@@ -328,7 +377,9 @@ Public Function Parse(Optional WithDVD As Boolean = False) As MpvOption[]
      myopts.Add(newopt("demuxer-lavf-probesize", comboboxtsprobe.text))
   Endif
   
-  
+  'audio-device
+  If (audio000device.value = CheckBox.True) Then myopts.Add(newopt("audio-device", Split(nopParseaudiodevicecombo.text, "~")[0]))
+                                          
   'audio passthrough
   For Each option In noparsevboxpt.Children
     If option Is Togglebutton Then
@@ -337,22 +388,75 @@ Public Function Parse(Optional WithDVD As Boolean = False) As MpvOption[]
         pt &= option.tag & ","
       Endif
     Endif
-    
   Next
   If Right(pt) = "," Then pt = Left(pt, -1)
   'If pt <> "" Then myopts.Add(newopt("ad", pt))
   If pt <> "" Then myopts.Add(newopt("audio-spdif", pt))
+
+  'forced subtitles only?
+  If forcedsubscheck2.value = CheckBox.True Then myopts.Add(newopt("sub-forced-only", "yes"))
+  
+  For Each sScript In ListEditorUserScripts.List
+    myopts.Add(newopt("script", sScript))
+  Next
   
   Return myopts.Insert(parse_custom_options())
 
 End
 
+Public Function Visualization_opts() As MpvOption[]
+  Dim myopts As New MpvOption[]
+  Dim visstring As String
+  Dim t1 As String
+  
+  t1 = global.tmpdir & "/pic.tmp" 
+  Try Kill t1
+  Select Case Left(NoParseVisType2.text)
+    'warning, the overlay before [vo] must be: overlay=repeatlast=0
+    '         showwaves needs To be set To 25 fps Or 34 fps max, Or sometimes playback Is Stuck at the End Of the stream
+    '--lavfi-complex="[aid1]asplit=3[azero][auno][ao];[azero]showspectrum[spectrum];[auno]showwaves=s=512x512:r=25[waves];[spectrum][waves]overlay=repeatlast=0[vo]"
+    Case "1"
+      Copy "shade_alpha.png" To t1
+      visstring = "'[aid1]asplit=3 [azero][auno][ao];[azero]showspectrum=mode=separate:color=intensity:slide=scroll:s=4x512:color=intensity:win_func=blackman:mode=combined:saturation=1,crop=h=(in_h/1.5):y=in_h,scale=h=512:w=512:force_original_aspect_ratio=disable[spectrum];[auno]showwaves=s=512x512:mode=line:r=30,crop=h=(ih/2):y=(0),crop=h=(ih/2):y=ih,colorlevels=romax=0.5:bomin=1:gomin=1[waves];movie=" & t1 & ",scale=h=(128):w=512[pic];[spectrum][pic]overlay[overlay1];[overlay1][waves]overlay=repeatlast=0[vo]'"
+      'visstring = "'[aid1]asplit=3 [azero][auno][ao];[azero]showspectrum=mode=separate:color=intensity:slide=scroll:s=4x512:color=intensity:win_func=blackman:mode=combined:saturation=1,crop=h=(in_h/1.5):y=in_h,scale=h=512:w=512:force_original_aspect_ratio=disable[spectrum];[auno]showwaves=s=512x512:mode=line:r=20,crop=h=(ih/2):y=(0),crop=h=(ih/2):y=ih,colorlevels=romax=0.5:bomin=1:gomin=1[waves];[spectrum][waves]overlay[vo]'"
+    Case "2"
+      Copy "shade_alpha.png" To t1
+      visstring = "'[aid1]asplit=3 [azero][auno][ao];[azero]showspectrum=mode=separate:color=intensity:slide=scroll:s=4x512:color=intensity:win_func=blackman:mode=combined:saturation=1,crop=h=(in_h/1.5):y=in_h,scale=h=512:w=512:force_original_aspect_ratio=disable[spectrum];[auno]showwaves=s=512x512:mode=line:r=30,crop=h=(in_h):y=(in_h/2),colorkey=0x000000:0.1:0.5,colorlevels=romax=0.5:bomin=1:gomin=1[waves];movie=" & t1 & ",scale=h=(128):w=512[pic];[spectrum][pic]overlay[overlay1];[overlay1][waves]overlay=repeatlast=0[vo]'"
+    Case "3"
+      Copy "shade_alpha.png" To t1
+      visstring = "'[aid1]asplit [a][ao];[a]showspectrum=mode=separate:color=intensity:slide=scroll:s=4x256:color=intensity:win_func=blackman:mode=combined:saturation=1,crop=h=(in_h/1.5):y=in_h[spectrum];movie=" & t1 & ",scale=h=(in_h/1.5)[pic];[spectrum][pic]overlay=repeatlast=0[vo]'"
+    Case "4"
+      Copy "black.png" To t1
+      visstring = "'[aid1]asplit=3[ao][a1][a2];[a1]showfreqs=s=512x256:mode=bar:colors=#eeeeee|#4d4d4d:averaging=0.6[freqs];movie=" & t1 & ",scale=512x256[pic];[a2]adrawgraph=bg=#00000000:size=512x256[blank];[blank][pic]overlay[back];[back][freqs]overlay=repeatlast=0[vo]'"
+      'visstring = "'[aid1]asplit=3[ao][a1][a2];[a1]showfreqs=s=512x256:mode=bar:colors=#00bbff|#0088ff:averaging=0.6[freqs];movie=" & t1 & ",scale=512x256[pic];[a2]adrawgraph=bg=#00000000:size=512x256[blank];[blank][pic]overlay[back];[back][freqs]overlay[vo]'"
+    Case "5"
+      Copy "black.png" To t1
+      visstring = "'[aid1]asplit=3[a1][a2][ao]; [a2]adrawgraph=bg=#00000000:size=256x256[blank];movie=" & t1 & ",scale=256x256[pic];[blank][pic]overlay[back];[a1]avectorscope=size=256x256[sp];[back][sp]overlay=repeatlast=0[vo]'"
+  End Select
+  If visstring <> "" Then
+    myopts.Add(newopt("keepaspect", "no"))
+    myopts.Add(newopt("lavfi-complex", visstring))
+    myopts.Add(newopt("osd-level", "0"))
+    myopts.Add(newopt("osd-color", "#00000000"))
+    myopts.Add(newopt("osd-scale", "0.01"))
+    myopts.Add(newopt("hr-seek", "yes"))
+  Endif
+  Return myopts
+End
+
+
+
 Public Sub ApplyBTN_Click()
+
   FMain.Apply
   Wait 0.1
   'IF ((NOT FMain.mplayer.ProcessRunningOvr()) OR (Fmain.mplayer.paused)) OR (GeneralOptions.Tabstrip1.caption = ("Style")) THEN 'apply style changes only if mplayer is not running.
     FMain.SetStyle_early()
     FMain.SetStyle_later()
+    AudioForm.init()
+    AudioForm.CoverPanel.Resize(AudioForm.CoverSize, AudioForm.coversize)
+    AudioForm.CoverBox.Resize(AudioForm.CoverSize, AudioForm.coversize)
+    
     Fmain.UpdateSearchResults(Fmain.mylibrary, Fmain.Librarygrid, fmain.fullyloaded, fmain.Searchfield.text)
     Fmain.UpdateSearchResults(Fmain.myplaylist, Fmain.PlaylistGrid, fmain.fullyloaded, fmain.SearchfieldPLS.text)
     global.AddUserExtensions(KnownExtensions.text)
@@ -363,9 +467,8 @@ End
 Public Sub OkBTN_Click()
   Me.Hide
   Wait 0.1
-  If FMain.mplayer.ProcessRunningOvr() Then FMain.VideoBox.SetFocus()
+  If FMain.mplayer.ProcessRunningOvr() Then fmain.videoboxproxy.SetFocus()
 End
-
 
 
 Public Sub LoadWatchDir(ProfileName As String)
@@ -429,6 +532,33 @@ Public Sub SaveExcludeDir(ProfileName As String)
   Next 'i
   Close #outfile
 End
+
+
+Public Sub LoadUserScriptsList(ProfileName As String)
+  Dim filename As String = ProfileName & ".profile/" & "userscripts.txt"
+  Dim sList As New String[]
+  ListEditorUserScripts.list = Split(file.Load(filename), "\n", "", True)
+End
+
+Public Sub SaveUserScriptsList(ProfileName As String)
+  Dim filename As String = ProfileName & ".profile/" & "userscripts.txt"
+  Dim outfile As File
+  Dim i As Integer = 0
+  If Not Exist(file.Dir(filename), True) Then
+    Try Mkdir File.dir(File.Dir(File.dir(File.Dir(File.Dir(filename)))))
+    Try Mkdir File.Dir(File.dir(File.Dir(File.Dir(filename))))
+    Try Mkdir File.dir(File.Dir(File.Dir(filename)))
+    Try Mkdir File.Dir(File.Dir(filename))
+    Try Mkdir File.Dir(filename)
+  Endif
+  outfile = Open filename For Write Create
+  For i = 0 To ListEditorUserScripts.list.count - 1
+    Print #outfile, ListEditorUserScripts.list[i]
+  Next 'i
+  Close #outfile
+End
+
+
 
 Public Sub AddBtn_Click()
   If LastDirectory = "" Then LastDirectory = Global.StartFolder
@@ -514,6 +644,7 @@ Public Sub LoadDefault()
   Dim MySettings As New SettingsClass
   MySettings.Load(Me, global.confpath & "/" & global.CurrentProfile)
   LoadWatchDir(global.confpath & "/" & global.CurrentProfile)
+  Try LoadUserScriptsList(global.confpath & "/" & global.CurrentProfile)
   Try LoadExcludeDir(global.confpath & "/" & global.CurrentProfile)
   Alreadyloaded = True
   TimesLoaded += 1
@@ -589,11 +720,11 @@ Public Sub AddBtn2_Click()
 End
 
 Public Sub Form_Close()
-  If FMain.mplayer.ProcessRunningOvr() Then FMain.VideoBox.setfocus()
+  If FMain.mplayer.ProcessRunningOvr() Then fmain.videoboxproxy.SetFocus()
 End
 
 Public Sub Form_Hide()
-  If FMain.mplayer.ProcessRunningOvr() Then FMain.VideoBox.setfocus()
+  If FMain.mplayer.ProcessRunningOvr() Then fmain.videoboxproxy.SetFocus()
 End
 
 Public Sub DvdDeviceOpen2_Click()
@@ -632,12 +763,20 @@ Public Sub Button2_Click()
   'SlangComboBox.visible = True
   SlangComboBox.Popup
 End
+Public Sub Button3_Click()
+  'Button2.visible = False
+  'SlangComboBox.visible = True
+  VlangComboBox.Popup
+End
 
 Public Sub ToolButton1_Click()
   AudioLangList.clear
 End
 Public Sub ToolButton2_Click()
   SubLangList.clear
+End
+Public Sub ToolButton3_Click()
+  VideoLangList.clear
 End
 
 
@@ -657,9 +796,14 @@ Public Sub SlangComboBox_Click()
   Button2.visible = True
 End
 
-Public Sub CoverCHK2_Click()
-  If CoverCHK2.value = False Then FMain.ShowAudioPanel(False)
+Public Sub VlangComboBox_Click()
+  VideoLangList.text = Trim(VideoLangList.text)
+  If VideoLangList.text <> "" Then VideoLangList.text = VideoLangList.text & ","
+  VideoLangList.text = VideoLangList.text & Trim(Split(VlangComboBox.Text, "(", "", True)[0])
+  VLangComboBox.visible = False
+  Button3.visible = True
 End
+
 
 Public Sub AddBtn4_Click()
   Fmain.Mylibrary.Exclude(Fmain.LibraryGrid, NoParseExcludedListbox)
@@ -719,11 +863,13 @@ Public Sub BackResetButton_Click()
 
   If Upper(Last.name) = "BACKRESETBUTTON2" Then 'leftside lists
     ' [GB2:BCOL] Try Last.next.background = &EEEEFF&
-    Try Last.next.Background = &F5F5F5&
+    'Try Last.next.Background = &F5F5F5&
+    Try Last.next.Background = Color.LightBackground
       Else If Upper(Last.name) = "BACKRESETBUTTON3" Then  'trayicon
         Last.next.Background = &2A2D3C&
-          Else If Upper(Last.name) = "BACKRESETBUTTON1" Then  'trayicon
-              Last.next.Background = &FFFFFF&
+          Else If Upper(Last.name) = "BACKRESETBUTTON1" Then  'leftsidelist background color
+              'Last.next.Background = &FFFFFF&
+              Last.next.Background = Color.textbackground
                 Else If Upper(Last.name) = "BACKRESETBUTTON6" Then 'PROGRESSBAR
                   Last.next.Background = Color.SelectedBackground
                   fmain.Progress.tag = "changecolor"
@@ -736,32 +882,6 @@ End
 
 
 '----------------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-' PUBLIC SUB FLASHCHK2_Click()
-'   FMain.SetFlashTabVisibility(FLASHCHK2.value = TRUE)
-'   Fmain.FlashCHK.value = FLASHCHK2.value
-' END
-
-
-
-Public Sub SaveGeometryCHK_Click()
-
-  SaveGeometryCompizCHK.enabled = Last.value
-
-End
-
-Public Sub SaveGeometryCompizCHK_Click()
-
-  
-
-End
 
 Public Sub Tabstrip1_MouseWheel()
 
@@ -832,15 +952,6 @@ Public Sub FillCdAndDvdDevices()
 End
 
 Public Sub Form_Show()
- 'mpv 0.11 removed af_export filter :(
-  '8 5 42 40 43
-  noparse8.visible = False
-  noparse5.visible = True
-  noparse42.visible = False
-  noparse40.visible = False
-  noparse43.visible = False
-  noparse55.visible = False
-  
   FillCdAndDvdDevices()
   If Not aligned Then
     AlignObjects()
@@ -856,6 +967,7 @@ Public Sub SaveCurrentTo(profile As String)
   MySettings.Save(Me, global.confpath & "/" & Profile)
   SaveWatchDir(global.confpath & "/" & Profile)
   SaveExcludeDir(global.confpath & "/" & Profile)
+  Try SaveUserScriptsList(global.confpath & "/" & Profile)
 End
 
 Public Sub MenuSaveDefault_Click()
@@ -876,8 +988,9 @@ Dim profilename, profilenamesplitted As String
   Endif
 End
 
-Public Sub KnownExtensions_LostFocus()
+Public Sub KnownExtensions_change()
   global.AddUserExtensions(KnownExtensions.text)
+  Try fmain.apply_view_menu()
 End
 
 
@@ -886,12 +999,12 @@ Public Sub NOPARSESCANBTN_Click()
 End
 
  'mpv 0.11 removed af_export filter :(
-' Public Sub ShowVmeterCHK_Click()
-'   noparse42.enabled = Last.value
-'   noparse40.enabled = Last.value
-'   noparse43.enabled = Last.value
-'   NoParseVisType.enabled = Last.value
-' End
+ ' Public Sub ShowVmeterCHK2_Click()
+ '   noparse42.enabled = Last.value
+ '   noparse40.enabled = Last.value
+ '   noparse43.enabled = Last.value
+ '   NoParseVisType2.enabled = Last.value
+ ' End
 
 
 
@@ -901,13 +1014,13 @@ Public Sub notifyobj_Click()
     Try Last.next.enabled = Last.value
     Try Last.next.next.next.enabled = Last.next.enabled
   Endif
-  If alreadyloaded Then global.ManageNotifies_click(Last) 
+  If alreadyloaded Then global.ManageNotifies_click(Last, Me) 
 End
 
 Public Sub notifyobj_Change()
   If fmain.fullyloaded Then 
    ' If alreadyloaded Then 
-      If timesloaded > 1 Then global.ManageNotifies_Change(Last)
+      If timesloaded > 1 Then global.ManageNotifies_Change(Last, Me)
    ' Endif
   Endif
 End
@@ -1050,16 +1163,19 @@ Public Function parse_custom_options() As MpvOption[]
     If MyHbox Is Hbox Then
       If MyHbox.children[0] Is Checkbox Then
         MyCheckbox = MyHbox.children[0]
-        If MyCheckbox.value Then 
-          opt = New MpvOption
-          opt.name = MyCheckbox.next.text
-          opt.data = MyCheckbox.next.next.next.text
-          opts.add(opt)
+        If MyCheckbox.value Then
+          If Trim(MyCheckbox.next.text) <> "" Then  
+            opt = New MpvOption
+            opt.name = MyCheckbox.next.text
+            opt.data = MyCheckbox.next.next.next.text
+            opts.add(opt)
+          Endif
         Endif
       Endif
     Endif
   Next
   Return opts
+  
 End
 
 Private previousimagepath As String = ""
@@ -1092,33 +1208,17 @@ End
 
 
 
-
-
-Public Sub NopParseAudioDeviceCombo_Enter()
-  Dim d, ad, t As String
-  t = Last.text
-  If NopParseAudioDeviceCombo.count < 2 Then
-    Shell fmain.mplayer.executable(5) & " --audio-device=help " To ad
-    For Each d In Split(ad, "\n", "", True)
-      Try NopParseAudioDeviceCombo.Add(Split(d, "'", "", True)[1])
-      Try global.myDebug(Split(d, "'", "", True)[1])
-    Next
-  Endif
-  Last.text = t
-
-End
-
-
-
 Public Sub ScrollViewUserOptions_Arrange()
   Dim o As Object
   Dim c As Combobox
   Dim opt As String
   Dim t As String
+
   For Each o In ScrollViewUserOptions.children
     If o Is Hbox Then
       If o.Children[0] Is CheckBox Then
         c = o.Children[1]
+        Object.Lock(c)
         c.enabled = o.Children[0].value
         c.Next.next.enabled = c.enabled
         If c.List.count < 2 Then 
@@ -1128,6 +1228,7 @@ Public Sub ScrollViewUserOptions_Arrange()
           Next
           c.text = t
         Endif
+        Object.unLock(c)
       Endif
     Endif
   Next
@@ -1146,33 +1247,6 @@ Public Sub OptionsList_Select()
   ItemSelection()
 End
 
-Public Sub ScrollView1_MouseDown()
-
-  
-
-End
-
-Public Sub NOPARSE_HwdecCombobox_Click()
-  EnableDisable_video_drivers_panels()
-End
-
-
-Public Function Video_driver_overridden() As String
-  If InStr(NOPARSE_HwdecCombobox.text, " + ") <= 0 Then Return ""
-  'else
-  Return Split((Split(NOPARSE_HwdecCombobox.text, "+")[1]), " ", "", True)[0]
-End
-
-
-Public Sub EnableDisable_video_drivers_panels()
-  Dim vo As String
-  'if the user overrides video drivers through hwdec combobox,
-  'reflect that in the gui
-  If Not fmain.fullyloaded Then Return
-  vo = Video_driver_overridden()
-  NewChains.firstloadifneeded()
-  NewChains.override_video_driver(vo)
-End
 
 Private Aligned As Boolean = False
 Private Sub AlignObjects()
@@ -1196,6 +1270,8 @@ Private Sub AlignObjects()
   containers.Add(ScrollView8)
   containers.Add(ScrollView3)
   containers.Add(ScrollView9)
+  containers.Add(ScrollView12)
+
   containers.Add(ScrollViewUserOptions)
   
   'find the width of an empty checkbox
@@ -1235,6 +1311,9 @@ Private Sub AlignObjects()
 
     'align labels
     For Each child In align_objs
+
+      'Try acontainer.autoresize = False
+
       indented = False
       Try indented = (child.Parent.indent = 1)
       Try Object.SetProperty(child, "autoresize", False)
@@ -1243,9 +1322,15 @@ Private Sub AlignObjects()
           Else
         Try Object.SetProperty(child, "w", max_obj_w + Desktop.scale)
       Endif
+      
+      'Wait
+      'Try acontainer.autoresize = True
+      
     Next
     
-    
+    ' Try acontainer.autoresize = False
+    ' Wait
+
   Next 'acontainer
 End
 
@@ -1260,7 +1345,8 @@ Public Sub ScrollView7_Arrange()
 End
 
 Public Sub switchres_compensate_checkbox_Click()
-  EnableDisableSwitchResCheckboxes
+  EnableDisableSwitchResCheckboxes()
+  If fmain.FullyLoaded Then fmain.check_speed_compensate()
 End
 
 Public Sub EnableDisableSwitchResCheckboxes()
@@ -1284,6 +1370,266 @@ Public Sub BackResetButton8_Click()
 End
 
 Public Sub SeekThumbsCheckbox_Click()
-  NoParseStyle12.enabled = Last.value
+  NoParseStyle12.enabled = SeekThumbsCheckbox.value Or SeekThumbsYoutubeCheckbox.value
 End
+
+
+Public Sub SeekThumbsYoutubeCheckbox_Click()
+ NoParseStyle12.enabled = SeekThumbsCheckbox.value Or SeekThumbsYoutubeCheckbox.value
+End
+
+Public Sub ShowCacheGaugeCHK_Click()
+  If Not fmain.fullyloaded Then Return
+  If Last.value = False Then 
+    fmain.SetProgressCache(0)
+      Else
+   If fmain.mplayer.ProcessRunningOvr() Then fmain.Update_cache_percent(fmain.mplayer.get_property_mpv("demuxer-cache-duration", True, 1, True))
+  Endif
+End
+
+
+
+Public Sub uservalue_activate()
+  SyncUserOptions(Last)
+End
+
+Public Sub uservalue_Enter()
+  SyncUserOptions(Last)
+End
+Public Sub uservalue_Mousedown()
+  SyncUserOptions(Last)
+End
+
+Public Sub ComboOption_gotfocus()
+  Dim OverWrite As Boolean = False
+  If Last.next.next Is Combobox Then
+    If (Trim(Object.GetProperty(Last.next.next, "text")) = "") Then overwrite = True
+    SyncUserOptions(Last.next.next, overwrite)
+  Endif
+End
+
+Private mymplayer As MplayerClass
+Public Sub SyncUserOptions(ValueCombobox As Combobox, Optional overwrite As Boolean = False)
+
+  Dim values As New String[]
+  Dim value, prev_value As String
+  Dim ComboPrev As Combobox
+  Dim option_infos As Collection
+  Dim option_info As MpvOptionInfo
+  Dim i, imin, imax, istep As Long
+  Dim choice As String
+
+  
+  
+  
+  
+  If Not alreadyloaded Then Return
+  If Not fmain.fullyloaded Then Return
+
+  If Not (ValueCombobox.previous.previous Is Combobox) Then Return
+
+  Comboprev = ValueCombobox.previous.previous
+
+  If mymplayer = Null Then mymplayer = New Mplayerclass
+  option_infos = mymplayer.options_info()
+  
+    If Not option_infos.Exist(Comboprev.text) Then Return
+  
+    option_info = option_infos[comboprev.text]
+    
+    prev_value = ValueCombobox.text
+    
+    ValueCombobox.clear
+    
+ 
+  If (Lower(option_info.type) = "integer") Or Lower(option_info.type) = "float" Then
+    If option_info.min <> "" Then
+      If option_info.max <> "" Then
+        imin = CInt(CFloat(option_info.min)) 
+        imax = CInt(CFloat(option_info.max)) 
+        istep = (imax - imin) Div 10
+        If istep < 1 Then istep = 1
+        'fill min to max values, max 10 values
+        For i = imin To imax Step istep
+          If (Lower(option_info.type) = "integer") Then 
+            ValueCombobox.Add(i)
+              Else
+            ValueCombobox.Add(i & ".000")
+          Endif
+        Next 'i
+        'make sure last value is the max
+        If (Lower(option_info.type) = "float") Then 
+          If ValueCombobox[ValueCombobox.count - 1].text <> imax & ".000" Then
+
+            ValueCombobox.Add(imax & ".000")
+          Endif
+            Else
+          If ValueCombobox[ValueCombobox.count - 1].text <> imax Then
+            ValueCombobox.Add(imax)
+          Endif
+        Endif
+      Endif
+    Endif
+  Endif
+
+  
+  
+  If (Lower(option_info.type) = "flag") Then
+    ValueCombobox.Add("yes")
+    ValueCombobox.Add("no")
+  Endif
+
+  If Not (option_info.choices = Null) Then
+    If (option_info.min = "") And (option_info.max = "")
+      For Each choice In option_info.choices
+        ValueCombobox.Add(choice)
+      Next
+    Endif
+  Endif
+
+  
+  If (Trim(prev_value) = "") Or overwrite Then 
+    If option_info.default_value <> "" Then ValueCombobox.text = option_info.default_value
+      Else
+    ValueCombobox.text = prev_value
+  Endif
+
+  ReturnLabel:
+  'strip trailing "*" used by mpv to list some options
+  If Right(ValueCombobox.text) = "*" Then ValueCombobox.text = Left(ValueCombobox.text, -1)
+End
+
+
+' Public Sub GetAlsaDevices() As String[]
+'   Dim acard, acardid, acardname, apcm, apcminfo, apcminfos, apcmid As String
+'   Dim adevices As New String[]
+'   Dim apcms As New String[]
+'   Dim acards As New String[]
+'   Dim sep As String = Chr(126)
+'   adevices.Add("plug:dmix" & " " & sep & " " & "(" & ("Default device, software mixing") & ")")
+'   adevices.Add("default" & " " & sep & " " & "(" & ("Default alsa device") & ")")
+'   adevices.Add("spdif" & " " & sep & " " & "(" & ("Default S/PDIF device") & ")")
+'   adevices.Add("hdmi" & " " & sep & " " & "(" & ("Default hdmi device") & ")")
+'   Try acards = Dir("/proc/asound/", "card*", gb.directory)
+'   If Not Error Then
+'     For Each acard In acards
+'       Try acardname = Trim(File.Load("/proc/asound/" & acard & "/id"))
+'       If Error Then acardname = "Unknown Card"
+'       acardid = Replace(acard, "card", "")
+'       Try apcms = Dir("/proc/asound/" & acard, "pcm*p").Sort(gb.Ascent)
+'       If Not Error Then
+'         For Each apcm In apcms
+'           Try apcminfos = Trim(File.Load("/proc/asound/" & acard & "/" & apcm & "/info"))
+'           If Error Then apcminfos = "name: No pcm info"
+'           For Each apcminfo In Split(apcminfos, "\n", "", True)
+'             If apcminfo Like "name: *" Then
+'               apcminfo = Trim(Split(apcminfo, ":", "", True)[1])
+'               apcmid = Replace(apcm, "pcm", "")
+'               apcmid = Trim(Replace(apcmid, "p", ""))
+'               Break
+'             Endif
+'           Next
+'          ' global.myDebug( acardid, apcmid, acardname, apcminfo)
+'           adevices.add("[plughw:" & acardid & "," & apcmid & "]" & " " & sep & " " & "(" & acardname & ":" & apcminfo & ")")
+'         Next
+'       Endif
+' 
+'     Next
+'   Endif
+'   
+'  Return adevices
+'   
+' End
+
+
+'Public Sub NopParseAudioDeviceCombo_Enter()
+  ' Dim d, ad, t, adevice As String
+  ' Dim out As New String[]
+  ' t = Last.text
+  ' If NopParseAudioDeviceCombo.count < 2 Then
+  '   Shell fmain.mplayer.executable(5) & " --audio-device=help " To ad
+  '   For Each d In Split(ad, "\n", "", True)
+  '     Try out.Add(Split(d, "'", "", True)[1])
+  '     Try global.myDebug(Split(d, "'", "", True)[1])
+  '   Next
+  '   For Each adevice In GetAlsaDevices()
+  '     out.Add("alsa/" & adevice)
+  '   Next
+  '   NopParseAudioDeviceCombo.List = out.Sort()
+  ' 
+  '   Last.text = t
+  ' Endif
+'End
+
+Public Sub NopParseAudioDeviceCombo_Enter()
+  Dim t As String
+  t = Last.text
+  Object.Lock(Last)
+  Last.enabled = False
+  If NopParseAudioDeviceCombo.count < 2 Then
+    NopParseAudioDeviceCombo.List = fmain.mplayer.audio_devices_list(" ~ ")
+  Endif
+  Last.text = t
+  Object.unLock(Last)
+  Last.enabled = True
+End
+
+
+' '---------------- HACKY WORKAROUND TO STOP SCROLLVIEWS SCROLLING WHEN OBJECTS ARE FOCUSED
+'     Private Scrollview_is_focused As New Collection
+'     Private scrollview_scrolly As New Collection
+'     
+'     Public Sub ScrollViews_GotFocus()
+'       'store focused state for each scrollbar
+'       Scrollview_is_focused[Object.Address(Last)] = True
+'     End
+'     Public Sub ScrollViews_LostFocus()
+'       'store focused state for each scrollbar
+'       Scrollview_is_focused[Object.Address(Last)] = False
+'     End
+'     
+'     Private last_scrolly As Integer
+'     Public Sub ScrollViews_mousewheel()
+'       'store pre-scroll position for each scrollbar
+'       scrollview_scrolly[Object.Address(Last)] = Last.scrolly
+'     End
+' 
+'     Public Sub ScrollViews_scroll()
+'       'Restore pre-scroll position for each scrollbar when it is not focused
+'       If Not scrollview_is_focused[Object.Address(Last)] Then
+'         Last.scrolly = last_scrolly
+'         
+'       Endif
+'     End
+'     
+' '---------------- /HACKY WORKAROUND TO STOP SCROLLVIEWS SCROLLING WHEN OBJECTS ARE FOCUSED
+
+
+
+Public Sub sliderblur_Change()
+
+  fmain.PreviousCoverFile = Null
+
+End
+
+Public Sub AddBtn5_Click()
+  If Dialog.path = "" Then Dialog.path = Desktop.ConfigDir & "/mpv/"
+  Dialog.ShowHidden = True
+  If Not Dialog.OpenFile() Then
+    ListEditorUserScripts.List = ListEditorUserScripts.List.Insert([Dialog.path])
+  Endif
+End
+
+
+
+Public Sub Button_clean_covers_Click()
+  If MyQuestion.Ask(("Delete cover files that are not needed by any library item?"), ("Delete"), ("Keep")) = 2 Then
+    Return
+      Else
+    covermanager.covers_remove_unreferenced()
+  Endif
+End
+
+
+
 

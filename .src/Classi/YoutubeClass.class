@@ -44,14 +44,13 @@ End
 
 
 Private NO_WEB_KEY As Boolean = False
-Private KEY_OK As String
+
 
 Private Sub APIKEY() As String
   Dim ykey As String
   Dim lkey_file As String = global.ConfPath & "/.ak.txt"
-
   'Just do this 'till a working key is found
-  If KEY_OK <> "" Then Return KEY_OK
+  If global.YT_APIKEY <> "" Then Return global.YT_APIKEY
   'try the user spcified API KEY
   If GeneralOptions.UseMyApiKeyCheckbox.value Then
     If Trim(GeneralOptions.API_KEY_USER_textbox.text) <> "" Then
@@ -59,7 +58,7 @@ Private Sub APIKEY() As String
       If Not (TestKey(ykey)) Then
         Message.error(("User provided api key does not seem to work.") & "\n" & ("Trying shared and cached keys..."))
       Endif
-      KEY_OK = ykey
+      global.YT_APIKEY = ykey
       Return ykey
     Endif
   Endif
@@ -73,7 +72,7 @@ Private Sub APIKEY() As String
         global.myDebug("Got new remote key")
         Try File.Save(lkey_file, ykey)
         global.myDebug("saved new remote key as local")
-        KEY_OK = ykey
+        global.YT_APIKEY = ykey
         Return ykey
       Endif
     Endif
@@ -86,7 +85,7 @@ Private Sub APIKEY() As String
   If Not Error Then 
     If TestKey(ykey) Then 
       global.myDebug("Got local key")
-      KEY_OK = ykey
+      global.YT_APIKEY = ykey
       Return ykey
     Endif
   Endif
@@ -114,8 +113,8 @@ Public Sub init_tree(tree As Treeview)
   'Tree.Add("related", ("*Related Videos"), picture["youtubeicon.png"])
 End
 
-Public Sub _new(tree As Treeview)
-  init_tree(tree)
+Public Sub _new(tree As Treeview, Optional doInit As Boolean = True)
+  If doinit Then init_tree(tree)
 End
 
 
@@ -239,8 +238,6 @@ Public Function getvideoid(url As String) As String
   Return videoid
 End
 
-Public Cookiesfile As String = ""
-
 Public Function YoutubeDlInstalled() As Boolean
   Dim ytdlinstalled As String = ""
   If Not GeneralOptions.InitDone Then GeneralOptions.Init()
@@ -259,205 +256,46 @@ Private ytdlout As String = Temp(Rnd(0, 1000) & "youtubedl-out")
 
 Public Function GetTitle(sourceurl As String) As String
     Dim title As String
-    Shell "youtube-dl '" & sourceurl & "' -e" To title
+    Dim videoid As String
+    Dim cmd As String
+    Dim outfile As String = Temp()
+    Dim t0 As Float = Timer()
+    Dim timeout As Integer = 5
+
+    videoid = getvideoid(sourceurl) 
+    videoid = sourceurl
+    cmd = "youtube-dl '" & videoid & "' -e &>" & outfile
+    global.myDebug(cmd)
+    Stop
+    'Shell cmd
+    Exec ["sh", "-c", cmd]
+    
+    While Not Exist(outfile)
+      Wait 0.1
+      If Timer() - t0 > timeout Then 
+        Return "NoTitle_" & Rnd(0, 100)
+      Endif
+    Wend
+    While Stat(outfile, True).Size = 0
+      Wait 0.1
+      If Timer() - t0 > timeout Then 
+        Return "NoTitle_" & Rnd(0, 100)
+      Endif
+    Wend
+    title = Replace(File.Load(outfile), "\n", "")
     Return Trim(title)
 End
 
-
-Public Function get_formats(maxR As Integer, Optional threedee As Boolean = False) As String
-  
-  
-  Dim fSorted As New String[] 'formats sorted by resolution
-  Dim i, mFormat As String
-  Dim height, code As Integer
-  Dim out As String
-  
-If threedee Then
-  fSorted.Add("720,84,mp4")
-  fSorted.Add("520,85,mp4")
-  fSorted.Add("360,82,mp4")
-  fSorted.Add("240,83,mp4")
-  fSorted.Add("720,102,webm")
-  fSorted.Add("360,101,webm")
-  fSorted.Add("360,100,webm")
-Endif
-  ' fSorted.Add("1080,37,mp4")
-  ' fSorted.Add("360,18,mp4")
-  ' fSorted.Add("1080,46,webm")
-  ' fSorted.Add("720,45,webm")
-  ' fSorted.Add("480,44,webm")
-  ' fSorted.Add("360,43,webm")
-  ' fSorted.Add("480,35,flv")
-  ' fSorted.Add("360,34,flv")
-  ' fSorted.Add("240,5,flv")
-'http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
-  fSorted.Add("3072,38,mp4")
- ' fSorted.Add("1080,137,mp4")'DASH
-  fSorted.Add("1080,37,mp4")
- ' fSorted.Add("720,136,mp4")'DASH
- 
-  fSorted.Add("720,22,mp4")
-  
- ' fSorted.Add("480,135,mp4")'DASH
- ' fSorted.Add("360,141,mp4")'DASH
- ' fSorted.Add("360,140,mp4")'DASH
- ' fSorted.Add("360,139,mp4")'DASH
- ' fSorted.Add("360,134,mp4")'DASH
-  
-  fSorted.Add("360,18,mp4")
- ' fSorted.Add("240,133,mp4")'DASH
-
- ' fSorted.Add("144,160,mp4")'DASH
-  fSorted.Add("1080,46,webm")
-
-  fSorted.Add("720,45,webm")
-  fSorted.Add("480,44,webm")
-'  fSorted.Add("360,172,webm")'DASH
- ' fSorted.Add("360,171,webm") 'DASH
-  fSorted.Add("360,43,webm")
-  fSorted.Add("720,120,flv")
-  fSorted.Add("480,35,flv")
-  fSorted.Add("360,34,flv")
-  fSorted.Add("270,6,flv")
-  fSorted.Add("270,13,3gp")
-  fSorted.Add("240,5,flv")
-  fSorted.Add("240,36,3gp")
-  fSorted.Add("144,17,3gp")
-
-
-  For Each i In fsorted
-    height = Split(i, ",", "", True)[0]
-    If height <= maxR Then
-      mFormat = Split(i, ",", "", True)[2]
-      'If mFormat = "mp4" Then
-        code = Split(i, ",", "", True)[1]
-        out &= code & "/"
-      'Endif
-    Endif
-  Next
-  out = Left(out, -1)
-  Return out
-End
-
-
-
-Public Function realvideourl(sourceurl As String, maxformat As String) As String
-
-  Dim fmtcode As Integer
-  Dim fmt As String
-  Dim i As Integer
-  Dim fSorted As New String[] 'formats sorted by container (mp4,webm,flv) then resolution becausewebm and flv gives more seek troubles
-  Dim useless As String
-  Dim fmtresult As String
-  Dim luckyformat As String
-  Dim ytdlprocess As Process
-  Dim ytdloutlines As String[]
-  Dim UrlAndFormats As New Collection
-
-  If Not YoutubeDlInstalled() Then Return
-
-If GeneralOptions.Get3dYT.value = True Then
-  fSorted.Add("720,84,mp4")
-  fSorted.Add("520,85,mp4")
-  fSorted.Add("360,82,mp4")
-  fSorted.Add("240,83,mp4")
-  fSorted.Add("720,102,webm")
-  fSorted.Add("360,101,webm")
-  fSorted.Add("360,100,webm")
-Endif
-  ' fSorted.Add("1080,37,mp4")
-  ' fSorted.Add("360,18,mp4")
-  ' fSorted.Add("1080,46,webm")
-  ' fSorted.Add("720,45,webm")
-  ' fSorted.Add("480,44,webm")
-  ' fSorted.Add("360,43,webm")
-  ' fSorted.Add("480,35,flv")
-  ' fSorted.Add("360,34,flv")
-  ' fSorted.Add("240,5,flv")
-'http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
-  fSorted.Add("3072,38,mp4")
- ' fSorted.Add("1080,137,mp4")'DASH
-  fSorted.Add("1080,37,mp4")
- ' fSorted.Add("720,136,mp4")'DASH
- 
-  fSorted.Add("720,22,mp4")
-  
- ' fSorted.Add("480,135,mp4")'DASH
- ' fSorted.Add("360,141,mp4")'DASH
- ' fSorted.Add("360,140,mp4")'DASH
- ' fSorted.Add("360,139,mp4")'DASH
- ' fSorted.Add("360,134,mp4")'DASH
-  
-  fSorted.Add("360,18,mp4")
- ' fSorted.Add("240,133,mp4")'DASH
-             '3D
- ' fSorted.Add("144,160,mp4")'DASH
-  fSorted.Add("1080,46,webm")
-
-  fSorted.Add("720,45,webm")
-  fSorted.Add("480,44,webm")
-'  fSorted.Add("360,172,webm")'DASH
- ' fSorted.Add("360,171,webm") 'DASH
-  fSorted.Add("360,43,webm")
-  fSorted.Add("720,120,flv")
-  fSorted.Add("480,35,flv")
-  fSorted.Add("360,34,flv")
-  fSorted.Add("270,6,flv")
-  fSorted.Add("270,13,3gp")
-  fSorted.Add("240,5,flv")
-  fSorted.Add("240,36,3gp")
-  fSorted.Add("144,17,3gp")
-
-
-  'strip out any format higher than maxformat and delete previous temp files
-  For i = fsorted.max DownTo 0 
-    If CInt(Split(fsorted[i], ",")[0]) > CInt(Replace(maxformat, "p", "")) Then 
-      useless = fsorted.Extract(i)[0]
-      global.myDebug("dropping " & useless)
-    Endif
-  Next
-  
-  Cookiesfile = Temp(Rnd(0, 1000) & "ytcookie")
-  global.myDebug("cookiesfile: " & cookiesfile)
-
-  'search for the code of the exact resolution in mp4:
-  For Each fmt In fsorted
-    If (fmt Like Replace(maxformat, "p", "") & ",*,mp4") Then 
-      luckyformat = Split(fmt, ",")[1]
-    Endif
-  Next
-  ytdlprocess = Shell "youtube-dl '" & sourceurl & "' --get-format --get-url --all-formats --prefer-insecure  --cookies " & Cookiesfile & " >" & ytdlout
-  global.myDebug("youtube-dl '" & sourceurl & "' --get-format --get-url --all-formats --prefer-insecure --cookies " & Cookiesfile & " >" & ytdlout)
-  Repeat
-    Wait 0.02
-  Until ytdlprocess.State <> Process.Running
-
-  Try ytdloutlines = Split(File.Load(ytdlout), "\n", "", True)
-  If Not Error Then 
-    Try Kill ytdlout
-      Else
-    Return
+Public Function ytdl_format_opt(max_height As String, Optional request_avc1 As Boolean = True) As String
+  Dim out As String = ""
+  out &= "'" 
+  out &= "bestvideo[height<=" & max_height & "]"
+  If request_avc1 Then
+    out &= "[vcodec^=avc1]"
   Endif
-  
-  If ytdloutlines.count = 0 Then Return
-  For i = 0 To ytdloutlines.max Step 2
-    'Try UrlAndFormats[ytdloutlines[i + 1]] = ytdloutlines[i]
-    Try UrlAndFormats[Split(ytdloutlines[i + 1], " ")[0]] = ytdloutlines[i] 'split(ytdloutlines[i],"")[0]
-  Next
-  
-  'pick up the first (if they exists) mp4 or webm or flv
-  'our array is already sorted that way.
-  For Each fmt In fsorted
-    fmtcode = Split(fmt, ",")[1]
-    Try fmtresult = UrlAndFormats[fmtcode]
-    If Not Error Then
-      If fmtresult Like "*http*" Then
-        global.myDebug(fmtresult)
-        Return Trim(fmtresult)
-      Endif
-    Endif
-  Next
-
+  out &= "+bestaudio"  
+  out &= "'" 
+  Return out
 End
 
 Public urlexists As Integer = -1
@@ -468,7 +306,7 @@ Public Function IsYoutubeLink(url As String) As Boolean
   Dim needsdecoding As Boolean = True
  ' global.myDebug(url)
   url = Lower(url)
-  needsdecoding = needsdecoding And ((url Like "http://*.youtube.*/*") Or (url Like "https://*.youtube.*/*") Or (url Like "http://*.googlevideo.*/*") Or (url Like "https://*.googlevideo.*/*"))
+  needsdecoding = needsdecoding And ((url Like "http://*.youtube.*/*") Or (url Like "ytdl://*") Or (url Like "https://*.youtube.*/*") Or (url Like "http://*.googlevideo.*/*") Or (url Like "https://*.googlevideo.*/*"))
   needsdecoding = needsdecoding And (Not (url Like "*t=*"))
   needsdecoding = needsdecoding And (Not (url Like "*ip=*"))
   needsdecoding = needsdecoding And (Not (url Like "*fexp=*"))
@@ -540,8 +378,7 @@ Public Function GetResults(youtubetree As Treeview, under As String, queryopts A
   If relatedto <> "" Then Askurl &= "&relatedToVideoId=" & relatedto
   If pagetoken <> "" Then AskUrl &= "&pageToken=" & pagetoken
   Askurl &= "&key=" & APIKEY()
-
-
+'Stop
   j_main = wget.DownloadAsync("'" & AskUrl & "'")
   Try jdecoded = JSON.Decode(j_main)
   If Error Then Goto ReturnErrorLabel

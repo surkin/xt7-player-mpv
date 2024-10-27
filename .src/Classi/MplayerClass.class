@@ -19,28 +19,58 @@ Private RenicerProcess As Process
 
 Private Const play_initialized_str As String = "MPV_PLAY_IS_FULLY_INITIALIZED"
 
-
 Private stopping As Boolean = False
-
 Public pausing As Boolean = False
 Public return_value As Integer = 0 'playerprocess return value
+Public subsequent_failures As Integer = 0
 
 ' Private Takingscreenshot As Boolean = False
 'Private lastscreenshot As String = ""
 Public last_media As String = ""
-
 Public commandline As String = ""
-
 Private InputPipe As String = ""
-
 Public user_stopped As Boolean = False
+Public volumeproperty As String = "volume"
+Public Precommand As String = ""
+Public Postcommand As String = ""
+Public CurrentOptions As String = ""
+Public AVcodecs As String = ""
+Public AudioLanguages As String = "\"\""
+Public SubLanguages As String = "\"\""
+Public Subfile As String = ""
+Public Quick As Boolean = False                         'Skip mediainfo code
+Public osdlevel As String = ""
+Public lua_scripts As New String[]
+'Public af_current As String 'keep track of realtime filters
+Public vf_current As String 'keep track of realtime filters
+Public allowed_options As New String[]
+
+
+Public Function version(Optional full_line As Boolean = False) As String
+  Dim out As String
+  Shell executable() & " --version" To out
+  If full_line Then Return out
+  out = Split(out, " ", "", True)[1]
+  Return out
+End
+
 
 
 Public Function executable(Optional timeout As Integer = -1) As String
   Dim out As String
   Dim proxy As String
+  Dim current_display As String
   
-  out &= out & GeneralOptions.MplayerEnvVars.text & " " 'user specified environment variables
+  If GeneralOptions.glsync_CheckBox.value Then 
+    'export __GL_SYNC_DISPLAY_DEVICE:
+    current_display = FMain.current_display_device()
+    If current_display <> "" Then 
+      out &= " " & "__GL_SYNC_DISPLAY_DEVICE=" & current_display & " "
+    Endif
+  Endif
+  
+  
+  out &= GeneralOptions.MplayerEnvVars.text & " " 'user specified environment variables
   If GeneralOptions.vdpauooverlaycheck.value = True Then
     out &= " " & "VDPAU_NVIDIA_NO_OVERLAY=1" & " "
   Endif
@@ -58,21 +88,13 @@ Public Function executable(Optional timeout As Integer = -1) As String
 End
 
 
-Public CurrentOptions As String = ""
-
-Public AVcodecs As String = ""
-
-Public AudioLanguages As String = "\"\""
-Public SubLanguages As String = "\"\""
-Public Subfile As String = ""
-Public Quick As Boolean = False                         'Skip mediainfo code
-
-
 
 Private Sub ClearMediaProperties()
 
   prop = New Collection
   prop.Clear
+  prop_time = New Collection
+  prop_time.clear
   ' setP("time-pos", 0)
   ' setP("Length", 0)
   ' setP("audio-channels", 0)
@@ -87,72 +109,44 @@ Private Sub ClearMediaProperties()
   prop["cddbtracks"] = New String[] 
 End
 
+Public Struct MpvOptionInfo 
+  name As String
+  type As String
+  default_value As Variant
+  min As Variant
+  max As Variant
+  choices As String[]
+End Struct
 
-'Realtime Media variables
+Public MpvOptionsInfo As New Collection[]
 
 
-Public osdlevel As String = ""
-
-
-Public Function old_FillMultitracks()
+Public Function FillMultitracks(Optional force_audio_only As Boolean = False)
   Dim T, Tcount As Integer
   Dim Type As String
   Dim id, name, lang, tmp, codec As String
   Dim properties As New String[]
   Dim video_ok As Boolean = False
+  Dim t0 As Float
+  Dim timeout As Integer = 1 'seconds
+  Dim videotracks As Integer = 0
 
   If getP("fullpath") = "" Then Return
   
   Try prop["audiotracks"].Clear
   Try prop["subtitletracks"].Clear
   Try Tcount = CInt(get_property_mpv("track-list/count"))
-  If Error Then
-    global.myDebug("WW", "unable to get track count")
-    Return
-  Endif
+  ' If Tcount = 0 Then
+  '   '0 tracks is unlikely; probably mpv is not answering correctly
+  '   'keep asking till the timeout or a real answer
+  '   t0 = Timer()
+  '   Repeat
+  '     global.myDebug("0 tracks is unlikely, reasking")
+  '     Wait 0.01
+  '     Try Tcount = CInt(get_property_mpv("track-list/count"))
+  '   Until Tcount <> 0 Or (Timer() - t0) > timeout
+  ' Endif
 
-  For T = 0 To Tcount - 1
-    properties.Clear()
-    properties.add("track-list/" & T & "/id")
-    properties.add("track-list/" & T & "/title")
-    properties.add("track-list/" & T & "/lang")
-    properties.add("track-list/" & T & "/type")
-    properties.add("track-list/" & T & "/codec")
-    get_properties_mpv(properties)
-    id = getP("track-list/" & T & "/id") 
-    name = getP("track-list/" & T & "/title") 
-    lang = getP("track-list/" & T & "/lang") 
-    Type = getP("track-list/" & T & "/type") 
-    codec = getP("track-list/" & T & "/codec") 
-    tmp = (ID & " - " & NAME & " - " & LANG & " - " & CODEC)
-    Select Case Type
-      Case "audio"
-        prop["audiotracks"].Add(Replace(tmp, unavailable_str, "*"))
-      ' Case "video"
-        'multiple video tracks unsupported by xt7
-      Case "sub"
-        prop["subtitletracks"].Add(Replace(tmp, unavailable_str, "*"))
-    End Select
-  Next
-
-  video_ok = (get_property_mpv("vo-configured") = "yes")
-  video_ok = video_ok And (get_property_mpv("current-vo") <> "(unavailable)")
-  setP("audioonly", (Not video_ok))
-End
-
-
-Public Function FillMultitracks()
-  Dim T, Tcount As Integer
-  Dim Type As String
-  Dim id, name, lang, tmp, codec As String
-  Dim properties As New String[]
-  Dim video_ok As Boolean = False
-
-  If getP("fullpath") = "" Then Return
-  
-  Try prop["audiotracks"].Clear
-  Try prop["subtitletracks"].Clear
-  Try Tcount = CInt(get_property_mpv("track-list/count"))
   If Error Then
     global.myDebug("WW", "unable to get track count")
     Return
@@ -164,6 +158,7 @@ Public Function FillMultitracks()
     properties.add("track-list/" & T & "/lang")
     properties.add("track-list/" & T & "/type")
     properties.add("track-list/" & T & "/codec")
+    properties.add("track-list/" & T & "/selected")
   Next 'T
   
   properties.Add("vo-configured")
@@ -186,15 +181,40 @@ Public Function FillMultitracks()
         'multiple video tracks unsupported by xt7
       Case "sub"
         prop["subtitletracks"].Add(Replace(tmp, unavailable_str, "*"))
+      Case "video"
+        videotracks += 1
     End Select
   Next
 
   video_ok = getP("vo-configured") = "yes"
   video_ok = video_ok And (getP("current-vo") <> "(unavailable)")
-  
-  ' video_ok = (get_property_mpv("vo-configured") = "yes")
-  ' video_ok = video_ok And (get_property_mpv("current-vo") <> "(unavailable)")
-  setP("audioonly", (Not video_ok))
+
+  If (Not video_ok) And (videotracks > 0) Then 'something is not right...
+    If idleplaying Then
+      t0 = Timer()
+      Repeat
+        Wait 0.01
+        video_ok = getP("vo-configured") = "yes"
+        video_ok = video_ok And (getP("current-vo") <> "(unavailable)")
+      Until video_ok Or (Timer() - t0) > timeout
+      If (Timer() - t0) > timeout Then
+        global.myDebug("?? video_ok is false but there are video tracks ??")
+        'at least we tried.
+        'since we are in idleplaying, there is no need to wait for vo-configured and current-vo.
+      Endif
+    Endif
+  Endif
+  If Not force_audio_only Then
+    If idleplaying Then
+      setP("audioonly", (videotracks = 0))
+        Else
+      setP("audioonly", (Not video_ok))
+    Endif
+      Else
+    setP("audioonly", True)
+  Endif
+  ' If global.IsVideoFile(getP("fullpath")) And (Not video_ok) Then Stop
+  ' If getP("audioonly") = True Then Stop
 End
 
 Public Function get_length() As String
@@ -222,42 +242,74 @@ Private Function MidC(s As String, a As String, Optional b As String) As String
   Endif
 End
 
-Public Sub playerprocess_read(Optional injected As String = "")
-  Dim sBuf As String, question, answer As String
-  Try Read #playerprocess, sBuf, -4096
-  'global.myDebug(sbuf)
-    ' If sBuf Like "*playlist/0*" Then
-    '   Stop
-    ' Endif
-
-  If sBuf Like "ANS_*|*" Then
-    For Each sBuf In Split(sbuf, "\n", "", True)
-      question = MidC(sBuf, "_", "|")
-      answer = (MidC(sBuf, "|"))
-      ' If Left(question, 1) = "=" Then 
-      '   question = Right(question, -1)
-      ' Endif
-      Try prop.Remove(question)
-      setP(question, answer)
-      'Debug question, "=", getP(question)
-    Next 'sbuf
-      Else
-    If sbuf Like "\\[*\\] *" Then
-      'filter some noisy ladspa plugins
-      If Not (sbuf Like "*Parsed_ladspa_*") Then modules_out &= sBuf & "\n"
-        Else
-      stdout &= sBuf & "\n"
-    Endif
-  Endif
-End
-
-Public Sub playerprocess_error(err As String)
-  stderr &= err & "\n"
-  If err Like "*" & play_initialized_str & "*" Then 
+Public Sub react_to_player_initialized()
     'catch statusline with the message player initialized
     'this hopefully means the play is initialized
     set_property_mpv("options/term-status-msg", "")
     setP("play_initialized", "yes")
+End
+
+Public Sub playerprocess_read(Optional injected As String = "")
+  Dim sBufs, sBuf As String
+  Dim question, answer As String
+  Try Read #playerprocess, sBufs, -4096
+
+  For Each sBuf In Split(sbufs, "\n", "", True)
+    
+    If sBuf Like "*" & play_initialized_str & "*" Then
+      react_to_player_initialized()
+    Endif  
+    
+    'Debug sBuf
+    If sBuf Like "*ANS_*|*" Then
+      question = MidC(sBuf, "_", "|")
+      answer = (MidC(sBuf, "|"))
+      Try prop.Remove(question)
+      
+      setP(question, answer)
+      setP_time(question, Timer())
+      
+      'duplicate/translate some metadata values for convenience
+      If InStr(question, "metadata/by-key") > 0 Then
+        Select Case Lower(question)
+          Case "metadata/by-key/artist"
+            setP("artist", answer)
+            If getP("metadata/by-key/author", "(unavailable_str)") = "(unavailable_str)" Then setP("author", answer)
+          Case "metadata/by-key/author"
+            setP("author", answer)
+            If getP("metadata/by-key/artist", "(unavailable_str)") = "(unavailable_str)" Then setP("artist", answer)
+          Case "metadata/by-key/genre"
+              setP("genre", answer)
+          Case "metadata/by-key/album"
+              setP("album", answer)
+          Case "metadata/by-key/date"
+              setP("year", answer)
+              setP("date", answer)
+          Case "metadata/by-key/track"
+              setP("TrackNo", answer)
+          Case "metadata/by-key/title"
+              setP("name", answer)
+              setP("title", answer)
+        End Select
+      Endif
+      
+        Else If sbuf Like "\\[*\\] *" Then
+          'filter some noisy ladspa plugins
+          If Not (sbuf Like "*Parsed_ladspa_*") Then 
+            modules_out &= sBuf & "\n"
+          Endif
+        Else
+        stdout &= sBuf & "\n"
+    Endif
+  Next 'sbuf
+End
+
+
+Public Sub playerprocess_error(err As String)
+  'global.mydebug(err)
+  stderr &= err & "\n"
+  If err Like "*" & play_initialized_str & "*" Then 
+    react_to_player_initialized()
   Endif
 End
 
@@ -268,8 +320,7 @@ End
 
 Public Function SupportsLadspa() As Boolean
   Dim out As String
-  'Shell executable() & " -af help | grep 'ladspa '" To out
-  Shell "ffmpeg -filters | grep ladspa" To out
+  Shell "ffmpeg -filters 2>&1|grep -i ladspa|grep -vi \\\\-ladspa" To out
   Return Trim(out) <> ""
 End
 
@@ -315,7 +366,7 @@ Public Function dvb_channel_to_number(C As String) As Integer
   Dim chans As String[]
   Dim chansfix As New String[]
   Dim chanfile As String = User.home & "/.config/mpv/channels.conf.ter"
-  If Not (Exist(chanfile)) Then Return 0
+  If Not (Exist(chanfile, True)) Then Return 0
   
   chans = Split(file.Load(chanfile), "\n")
   For i = 0 To chans.Max 'we have to discard any non valid channel line, because so does mplayer
@@ -332,15 +383,19 @@ Public Function dvb_channel_to_number(C As String) As Integer
   Return 0
 End
 
-
 Public mpvoptions As New Collection
 
-Public Sub set_option(name As String, data As String)
+
+
+
+Public Sub set_option(name As String, data As String, Optional allow_dupes As Boolean = True, Optional options As Collection = mpvoptions)
  'chr(8) is used instead of null because the collection doesn't keep null values
-  While mpvoptions.Exist(name)
-    name = " " & name 'prefix white spaces to use multiple options with the same name
-  Wend
-  mpvOptions[name] = data
+  If allow_dupes Then
+    While options.Exist(name)
+      name = " " & name 'prefix white spaces to use multiple options with the same name
+    Wend
+  Endif
+  options[name] = data
   global.myDebug(name, data)
 End
 
@@ -369,19 +424,47 @@ Private Function set_options() As String
 End
 
 
+Private Function only_allowed_options(source_opts As Collection) As Collection
+  Dim sData, sKey, sAllowed_opt As String
+  'check source_opts in allowed_options array for unsupported options and strip them
+  If allowed_options.count = 0 Then
+    global.myDebug("allowed_options.count is zero sized, skipping check")
+    Return source_opts
+  Endif
+  For Each sData In source_opts
+    sKey = Trim(source_opts.key)
+    If allowed_options.Find(skey) = -1 Then
+      source_opts.Remove(sKey)
+      Debug "Removing " & skey & " option as it doesn't seem to be supported by the used mpv executable"
+    Endif
+  Next
+  Return source_opts
+End
+
+
+
 Private Function fix_options(Optional broken_opts As Collection = mpvoptions) As Collection
   Dim return_opts As Collection = broken_opts.Copy()
   Dim data As String
+  
   'handle corner cases where an option could conflict with another
   For Each data In return_opts
-    If data Like "*lavcac3enc*" Then
+    If data Like "*lavcac3enc*" Then 'unset audio-channels when encoding ac3 streams
       If return_opts.Key Like "*af*" Then
         Print "found audio filter lavcac3enc; searching and unsetting --audio-channels"
         Print
         unset_option("audio-channels", return_opts)
       Endif
+        Else If return_opts.Key = "interpolation" Then
+          If data = "yes" Then
+            Print "It seems that user requested gpu temporal interpolation; setting --video-sync=display-vdrop" 
+            set_option("video-sync", "display-vdrop",, return_opts)
+          Endif
     Endif
   Next
+
+  'Return only allowed options
+  return_opts = only_allowed_options(return_opts)
   Return return_opts
 End
 
@@ -399,84 +482,66 @@ End
 Public Function waitplayback(timeoutcentisecs As Integer) As Boolean
   Dim play_initialized As Boolean = False
   Dim idling As Boolean
+  Dim tc As Integer = 0
+  Dim waittime As Float = 0.01
   setP("idle", "no")
-
   Repeat
+
     If Not ProcessRunningOvr() Then Return False
-    Wait 0.01
-    timeoutcentisecs -= 1
+    Wait waittime
+    timeoutcentisecs -= CInt(waittime * 100)
     If IsInteger(CStr(timeoutcentisecs / 100)) Then 'check if playback is idle (eg: no file playing) every second
       global.myDebug("check if idle")
-      get_property_mpv("=idle", False)
+      global.myDebug(get_property_mpv("=idle", False))
     Endif
-  play_initialized = (getP("play_initialized") = "yes")
-  'play_initialized is set by playerprocess_error through the hack
-  'of setting the statusline to a value recognized by playerprocess_error
-  'Hopefully, when the statusline is initialized, the playback is initialized too.
-  'In case of problems, the core-idle property may come handy (but slower), see:
-  'https://github.com/mpv-player/mpv/commit/8d414e2fe7f79f1bbf9158e8aa034e9ac9cf2222#commitcomment-13950548
+    play_initialized = (getP("play_initialized") = "yes")
+    
+    'play_initialized is set by playerprocess_error through the hack
+    'of setting the statusline to a value recognized by playerprocess_error
+    'Hopefully, when the statusline is initialized, the playback is initialized too.
+    'In case of problems, the core-idle property may come handy (but slower), see:
+    'https://github.com/mpv-player/mpv/commit/8d414e2fe7f79f1bbf9158e8aa034e9ac9cf2222#commitcomment-13950548
+
+    '...however sometimes the track count is still 0, so use track-list/count too.
+    Try tc = get_property_mpv("track-list/count", True, 10, False)
+    play_initialized = play_initialized And (tc <> 0)
+    waittime += 0.01
+    If waittime >= 0.2 Then waittime = 0.2
   Until play_initialized Or (timeoutcentisecs <= 0) Or (getP("=idle") = "yes")
   global.myDebug("timeoutcentisecs=", timeoutcentisecs)
   global.myDebug("play_initialized=", play_initialized)
   global.myDebug("getp_idle=", getP("=idle"))
+  global.myDebug("track-list/count=", getP("track-list/count"))
   If play_initialized Then
     setP("idle", Null)
+    subsequent_failures = 0
     Return True
   Endif
   setP("idle", Null)
   Return False
 End
 
-
-' Public Function waitplayback(timeoutcentisecs As Integer) As Boolean
-'   Dim cTime As Float = 0
-'   Dim idling As Boolean
-'   setP("idle", "no")
-' 
-'   Repeat
-'     If Not ProcessRunningOvr() Then Return False
-'     get_property_mpv("=time-pos", False)
-'     Wait 0.01
-'     timeoutcentisecs -= 1
-'     Try cTime = getP("=time-pos")
-'     If IsInteger(CStr(timeoutcentisecs / 100)) Then 'check if playback is idle (eg: no file playing) every second
-'       get_property_mpv("=idle", False)
-'     Endif
-'   Until (cTime > 0) Or (timeoutcentisecs <= 0) Or (getP("=idle") = "yes")
-'   If ctime > 0 Then 
-'     setP("=time-pos", Null)
-'     setP("idle", Null)
-'     Return True
-'   Endif
-'   setP("idle", Null)
-'   Return False
-' End
-
-' Public Function waitplayback(timeoutcentisecs As Integer) As Boolean
-'   Dim i As Integer
-'   Dim cTime As Float = 0
-'   For i = 1 To (timeoutcentisecs Div 100)
-'     Try cTime = (get_property_mpv("=time-pos", True, "100"))
-'     While (ctime = 0) And ProcessRunningOvr()
-'       Try cTime = (get_property_mpv("=time-pos", True, "100"))
-'       Wait
-'     Wend
-'     If ctime > 0 Then 
-'       setP("=time-pos", Null)
-'       Return True
-'     Endif
-'   Next
-'   Return False
-' End
-
-
 Private prop As Collection
+Private prop_time As Collection
 
 Public Sub setP(aKey As String, aData As Variant)
   'set property into a collection in lowercase
   Try prop[Lower(aKey)] = aData
   If Error Then global.myDebug("Error while trying to set: ", aKey, "=", aData)
 End
+
+Private Sub setP_time(aKey As String, timestamp As Float)
+  'set property into a collection in lowercase
+  Try prop_time[Lower(aKey)] = timestamp
+  If Error Then global.myDebug("Error while trying to set: ", aKey, "=", timestamp)
+End
+
+Private Function getP_time(aKey As String) As Float
+  Try Return prop_time[Lower(akey)]
+  If Error Then Return -1
+End
+
+
 
 Public Function getP(aKey As String, Optional unanswered_string As String) As Variant
   'get a lowercase property from a key
@@ -489,121 +554,165 @@ Public Function getP(aKey As String, Optional unanswered_string As String) As Va
   Endif
 End
 
-
 Public event_loop As Timer
 
 
-
-
-
-Public watched_properties As New String[]
-Public watched_properties_old_data As New String[]
+Public watched_properties_old_data As New Collection 'name holds property name, data holds old data value
 
 Public Sub event_loop_timer()
   '* generate events on property changes 
   '* keep properties updated
   Dim name, data_new, data_old As String
-  Dim i As Integer
+  Dim watched_properties As New String[]
+
+  For Each data_old In watched_properties_old_data
+     watched_properties.Add(watched_properties_old_data.key)
+  Next
   If watched_properties.count > 0 Then
     get_properties_mpv(watched_properties, False) 'async ask for those properties
     Wait 0.1
     'see if some property has changed:
 
-    For i = 0 To watched_properties.count - 1
-
-      name = watched_properties[i]
+    For Each data_old In watched_properties_old_data
+      name = watched_properties_old_data.Key
       data_new = getP(name)
-      data_old = watched_properties_old_data[i]
-
       If data_old <> data_new Then 
         Raise property_change(name, data_old, data_new)
-        watched_properties_old_data[i] = data_new
+        watched_properties_old_data[name] = data_new
       Endif
     Next
   Endif
-
-
 End
 
 Event property_change(name As String, data_old As String, data_new As String)
 
 Event seeking()
 
+' Private Function lua_list() As String
+'   Dim lua_script As String
+'   Dim out_list As String
+'   For Each lua_script In lua_scripts
+'     out_list &= lua_script & ","
+'   Next
+'   out_list &= killer_script_filename()
+'   Return out_list
+' End
+
+Private Function internal_options_overridable() As Collection
+  ' Dim out As New Collection
+  ' out["cache-secs"] = "1"
+  ' ignore_opts.Insert(["cache-secs"])
+  ' Return out
+End
+
 Private Function internal_options() As Collection
   Dim out As New Collection
 
-  'Returns a collection Of options that will be set every Time, depsite any configuration option
-
+  'Returstop
   'out["quiet"] = "yes"
-  out["input-file"] = SetUpInputPipe()
+
+  out["input-ipc-server"] = SetUpInputPipe()
   out["msg-color"] = "no"
   out["msg-level"] = "all=v,cplayer=status,dvdnav=no,disc=no"
-  'out["term-status-msg"] = "\"\""
+  'out["input-default-bindings"] = "no" '<--why this conflicts with some user scripts?
+                                        'eg: fastforward.lua binds to "(" and ")" and won't work with default bindings disabled.
   out["term-status-msg"] = play_initialized_str
   out["force-seekable"] = "yes" 'this will allow seeks within the cache
-  
-  'this array will be needed by do_apply().
-  'because ut decides if a restart is needed by comparing the changed user options
-  'with the previous one. But singe the changed options are set from the outside,
-  'which has no clue about those internal_options. we say to do_apply to ignore
-  'the following:
-  ignore_opts = ["input-file", "msg-color", "msg-level", "term-status-msg", "start", "force-seekable", "volume"]
+  set_option("script", killer_script_filename(), True)
 
+  'this array will be needed by do_apply().
+  'because it decides if a restart is needed by comparing the changed user options
+  'with the previous one. But since changed options are set from the outside,
+  'which has no clue about those internal_options, we say to do_apply to ignore
+  'the following:
+  'ignore_opts.Insert(["script", "input-file", "term-status-msg", "msg-color", "msg-level", "input-default-bindings", "start", "force-seekable", volumeproperty])
+  ignore_opts.Insert(["script", "input-ipc-server", "term-status-msg", "msg-color", "msg-level", "start", "force-seekable", volumeproperty])
   Return out
+End
+
+Public Function killer_script_filename() As String
+  
+  Dim tempdir As String = global.tmpdir
+  Dim file_name, txt_data As String
+  'uses a lua script to link mpv to the gui so that when the gui dies, mpv will quit
+  txt_data = File.Load("_lua_killer.lua")
+  txt_data = Replace(txt_data, "###", CStr(Application.id))
+  file_name = tempdir & "/killer.lua"
+  File.Save(file_name, txt_data)
+  
+  Return file_name
 End
 
 
 
 
-
 Public Function do_play(filename As String, Optional string_options As String = "", Optional restart As Boolean = False, Optional bugid1870 As Boolean = False, Optional cookieopts As String = "", Optional dumpfile As String = "/tmp/stream.dump.xt7.mpeg", Optional doanalyze As Boolean = False) As Boolean
-  Dim killer_script As String = Temp()
+  'Dim killer_script As String = Temp()
   Dim data As String
   Dim internal_opts As New Collection
+  Dim internal_opts_overridable As New Collection
+  'af_current = "."
+  'vf_current = "."
+  ignore_opts.Clear
   return_value = 0
   If string_options Like "*-idle *" Then 
-    Stop
     Return 'fixmempv
   Endif
   
-  If ProcessRunningOvr() Then do_stop()
+  If ProcessRunningOvr() Then 
+    do_stop()
+  Endif
   user_stopped = False 'take this right after the call to do_stop()
   
+
   internal_opts = internal_options()
   For Each data In internal_opts
-    mpvOptions[internal_opts.key] = data
+      mpvOptions[internal_opts.key] = data
   Next
+  internal_opts_overridable = internal_options_overridable()
+  If internal_opts_overridable <> Null Then
+    For Each data In internal_opts_overridable
+        If Not (mpvoptions.Exist(internal_opts_overridable.key)) Then 
+          mpvOptions[internal_opts_overridable.key] = data
+        Endif
+    Next
+  Endif
   
   If global.IsImgFile(filename) Then
     mpvOptions["fps"] = "0.1"
   Endif
-  fix_options()
+
+  mpvoptions = fix_options(mpvoptions)
+
   commandline = executable() & set_options() & string_options
+  
+  If (global.IsAudioFile(filename)) Then
+    global.mydebug("Audio only file, clearing video filters")
+    commandline &= " --vf-clr "
+  Endif
+  
   commandline &= Shell(filename)
+  
   global.myDebug(commandline, commandline)
   last_media = filename
   
   stdout = ""
   stderr = ""
   modules_out = ""
-  
+
+  ExecutePreCmd()
   playerprocess = Shell commandline For Read Write As "playerprocess"
 
-  'The following will be a script that will kill mpv if xt7 crashes:
-    Copy "killer.sh" To killer_script
-    Chmod killer_script To "rwxr-xr-x"
-
-    Shell killer_script & " " & Application.id & " " & playerprocess.id
-    global.myDebug(killer_script & " " & Application.id & " " & playerprocess.id)
-
-  watched_properties_old_data.Resize(watched_properties.count)
+  lua_scripts.clear 
+  
   event_loop = New Timer As "event_loop"
   event_loop.delay = 500
   event_loop.start
   setP("fullpath", filename)
-
   Return True
 End
+
+
 
 Public Struct chapter
   title As String
@@ -691,34 +800,23 @@ Private Function get_main_cue_property(cuetext As String, tag As String) As Stri
     Wend
 
     If InStr(aLine, tag) = 1 Then
-      Return Trim(Right(aLine, - Len(tag)))
+      Return Trim(Right(aLine, -Len(tag)))
         Else If InStr(aLine, "REM " & tag) = 1 Then 
-          Return Trim(Right(aLine, - Len("REM " & tag)))
+          Return Trim(Right(aLine, -Len("REM " & tag)))
     Endif
   Next
 End
 
 
-Public Function get_mediainfo(Optional cddb As Boolean = True) As Boolean 
+Public Function get_mediainfo(Optional cddb As Boolean = True, Optional force_audio_only As Boolean = False) As Boolean 
   Dim media_taglib As New TagLib
   Dim fileUtf8 As String
   Dim properties As String[]
   Dim cuetext As String 
   Dim fullpath As String
-  
   fullpath = getP("fullpath") 
   
   If fullpath = "" Then Return
-
-' ' ''ENUM Artist, title etc via mpv Metadata
-' '     metadatacount = GetPropertympv("metadata/list/count")
-' '     If metadatacount > 0 Then
-' '       For i = 0 To metadatacount - 1
-' '         metadataname = GetPropertympv("metadata/list/" & i & "/key")
-' '         global.myDebug( metadataname, GetPropertympv("metadata/by-key/" & metadataname))
-' '       Next
-' '     Endif
-' '   ''
 
   global.mydebug("Waiting for playback to start")
   If Not waitplayback(3000) Then
@@ -734,10 +832,9 @@ Public Function get_mediainfo(Optional cddb As Boolean = True) As Boolean
     fileutf8 = fullpath
     fileutf8 = Trim(fileutf8)
 
-  FillMultitracks() 'will set prop[audioonly] too.
+  FillMultitracks(force_audio_only) 'will set prop[audioonly] too.
 
   Try setP("size", (Stat(fullpath, True).Size Div 1024))
-  
   properties = New String[]
   properties.insert(["filename", "partially-seekable", "file-format", "audio-codec"]) 'common
   'properties.Insert(["=audio-bitrate", "audio-channels", "=audio-channels", "=audio-samplerate"]) 'common
@@ -745,84 +842,87 @@ Public Function get_mediainfo(Optional cddb As Boolean = True) As Boolean
   If Not getP("audioonly") Then
     properties.Insert(["video-codec", "video-params/dw", "video-params/dh"]) 'video files
   Endif
-
-  
   
   'for audio only files, try to get common audio tags
   'try first to get them using fast taglib
   'fixmempv --> but fallback to mplayer in idle mode <--fixmempv
-  If (getP("AudioOnly") And (Not Global.IsNetworkURI(FullPath))) Then
-    If media_taglib.IsSupported(fileutf8) And media_taglib.Init(Fullpath) Then
-      setP("artist", media_taglib.Artist)
-      setP("author", media_taglib.Artist)
-      setP("title", media_taglib.Title)
-      setP("album", media_taglib.Album)
-      setP("genre", media_taglib.Genre)
-      setP("year", media_taglib.MyYear)
-      setP("comment", media_taglib.Comment)
-      setP("comments", media_taglib.Comment)
-      setP("trackno", media_taglib.Track)
-      setP("=duration", media_taglib.Length)
-      setP("duration", FormatTime(media_taglib.Length))
-      If getP("=duration") = 0 Then properties.add("=duration")
-      If getP("duration") = 0 Then properties.add("duration")
-      setP("=Audio-Bitrate", media_taglib.Bitrate)
-      If getP("=Audio-Bitrate") = 0 Then properties.add("=audio-bitrate")
-      setP("=audio-params/channels", media_taglib.Channels)
-      If getP("=audio-params/channels") = 0 Then properties.add("=audio-params/channels")
-      setP("=audio-params/samplerate", media_taglib.Samplerate)
-      If getP("=audio-params/samplerate") = 0 Then properties.add("=audio-params/samplerate")
-      global.myDebug("got info from taglib on " & Fullpath & " --")
-      
-       media_taglib.tlFree()
-        Else  'there was a problem with TagLib Class initialization, fallback to mplayer
-              'or was a network uri or a cddb 
-      If global.IsCdaudio(Fullpath) Then 'fixmempv cddb allow to choose if user wants cddb
-        get_cdda_info(cdda_device(Fullpath), cddb)
-        If cddb Then
-          Try setP("Artist", Mycdinfo.Artist)
-          Try setP("author", Mycdinfo.Artist)
-          Try setP("year", Mycdinfo.years)
-          Try setP("year", Mycdinfo.years)
-          Try setP("album", Mycdinfo.title)
-        Endif
+  If (getP("AudioOnly") = True) Then ' then And (Not Global.IsNetworkURI(FullPath))) Then
+   
+    If (Not Global.IsNetworkURI(FullPath))
+      If media_taglib.IsSupported(fileutf8) And media_taglib.Init(Fullpath) Then
+        setP("artist", media_taglib.Artist)
+        setP("author", media_taglib.Artist)
+        setP("title", media_taglib.Title)
+        setP("album", media_taglib.Album)
+        setP("genre", media_taglib.Genre)
+        setP("year", media_taglib.MyYear)
+        setP("comment", Replace(Replace(media_taglib.Comment, "\n", " "), "\r", " "))
+        setP("comments", media_taglib.Comment)
+        setP("trackno", media_taglib.Track)
+        setP("=duration", media_taglib.Length)
+        setP("duration", FormatTime(media_taglib.Length))
+        setP("=Audio-Bitrate", media_taglib.Bitrate)
+        setP("=audio-params/channels", media_taglib.Channels)
+        setP("=audio-params/samplerate", media_taglib.Samplerate)
+        global.myDebug("got info from taglib on " & Fullpath & " --")
+        media_taglib.tlFree()
       Endif
-
-
-      If Not (global.IsCdaudio(Fullpath))
-        Try setP("Artist", get_property_mpv("metadata/by-key/ARTIST"))
-        Try setP("Author", get_property_mpv("metadata/by-key/AUTHOR"))
-        Try setP("Genre", get_property_mpv("metadata/by-key/GENRE"))
-        Try setP("Album", get_property_mpv("metadata/by-key/ALBUM"))
-        Try setP("Year", get_property_mpv("metadata/by-key/DATE"))
-        ' Try Media_CreationDate = DConv(FindAudioTag("creation date")) 'fixmempv
-        Try setP("TrackNo", get_property_mpv("metadata/by-key/track"))
-        Try setP("Title", get_property_mpv("metadata/by-key/TITLE"))
-        If getP("Title") = "" Then Try setP("name", get_property_mpv("metadata/by-key/TITLE"))
-        ' Try Media_Comment = DConv(FindAudioTag("comment")) ' & Media_ExtraComment 'fixmempv mpv doesnt support comments...
-        ' Try Media_Comments = DConv(FindAudioTag("comments")) ' & Media_ExtraComment 'fixmempv mpv doesnt support comments...
-      Endif
-
-      If Fullpath Like "*.cue" Then
-        Try cuetext = File.Load(fullpath)
-        If Not Error Then 
-          Try setP("year", get_main_cue_property(cuetext, "DATE"))
-          Try setP("comment", get_main_cue_property(cuetext, "COMMENT"))
-          Try setP("genre", get_main_cue_property(cuetext, "GENRE"))
-          Try setP("artist", get_main_cue_property(cuetext, "PERFORMER"))
-          Try setP("author", get_main_cue_property(cuetext, "PERFORMER"))
-          Try setP("Album", get_main_cue_property(cuetext, "TITLE"))
-        Endif
-      Endif
-      
-      
-      If (getP("=duration") = 0) Or (getP("=duration") = "") Then properties.insert(["=duration", "duration"])
-
     Endif
+
+    
+    If getP("=duration") = 0 Then properties.add("=duration")
+    If getP("duration") = 0 Then properties.add("duration")
+    If getP("=Audio-Bitrate") = 0 Then properties.add("=audio-bitrate")
+    If getP("=audio-params/channels") = 0 Then properties.add("=audio-params/channels")
+    
+    If getP("=audio-params/samplerate") = 0 Then properties.add("=audio-params/samplerate")
+  
+    If Not (global.IsCdaudio(Fullpath))
+          If getP("Artist", "(unavailable)") = "(unavailable)" Then properties.add("metadata/by-key/ARTIST")
+      If getP("Author", "(unavailable)") = "(unavailable)" Then properties.add("metadata/by-key/AUTHOR")
+      If getP("Genre", "(unavailable)") = "(unavailable)" Then properties.add("metadata/by-key/GENRE")
+      If getP("Album", "(unavailable)") = "(unavailable)" Then properties.add("metadata/by-key/ALBUM")
+      If getP("Year", "(unavailable)") = "(unavailable)" Then properties.add("metadata/by-key/DATE")
+      ' Try Media_CreationDate = DConv(FindAudioTag("creation date")) 'fixmempv
+      If getP("TrackNo", "(unavailable)") = "(unavailable)" Then properties.add("metadata/by-key/track")
+      If getP("Title", "(unavailable)") = "(unavailable)" Then properties.add("metadata/by-key/TITLE")
+      If getP("Title") = "" Then properties.add("metadata/by-key/TITLE")
+      ' Try Media_Comment = DConv(FindAudioTag("comment")) ' & Media_ExtraComment 'fixmempv mpv doesnt support comments...
+      ' Try Media_Comments = DConv(FindAudioTag("comments")) ' & Media_ExtraComment 'fixmempv mpv doesnt support comments...
+    Endif      
+  
+    If global.IsCdaudio(Fullpath) Then 'fixmempv cddb allow to choose if user wants cddb
+      get_cdda_info(cdda_device(Fullpath), cddb)
+      If cddb Then
+        Try setP("Artist", Mycdinfo.Artist)
+        Try setP("author", Mycdinfo.Artist)
+        Try setP("year", Mycdinfo.years)
+        Try setP("year", Mycdinfo.years)
+        Try setP("album", Mycdinfo.title)
+      Endif
+    Endif
+  
+  
+    If Fullpath Like "*.cue" Then
+      Try cuetext = File.Load(fullpath)
+      If Not Error Then 
+        Try setP("year", get_main_cue_property(cuetext, "DATE"))
+        Try setP("comment", get_main_cue_property(cuetext, "COMMENT"))
+        Try setP("genre", get_main_cue_property(cuetext, "GENRE"))
+        Try setP("artist", get_main_cue_property(cuetext, "PERFORMER"))
+        Try setP("author", get_main_cue_property(cuetext, "PERFORMER"))
+        Try setP("Album", get_main_cue_property(cuetext, "TITLE"))
+      Endif
+    Endif
+        
+        
+    If (getP("=duration") = 0) Or (getP("=duration") = "") Then properties.insert(["=duration", "duration"])
+  
+  
         Else 'for not audio only files, use mpv
       properties.insert(["=duration", "duration"])
       If (Not getP("audioonly")) Then
-        properties.Insert(["=video-bitrate", "width", "height", "fps"])            
+        properties.Insert(["=video-bitrate", "width", "height", "container-fps"])            
       Endif
 
   Endif
@@ -833,26 +933,6 @@ Public Function get_mediainfo(Optional cddb As Boolean = True) As Boolean
   If getP("=duration") = "" Then setP("duration", "0")
   Return True
 End
-
-
-Public maxcache As String = "0"
-
-Private Function parsecacheparam(commandline As String) As String
-Dim start As Integer
-Dim tmp As String
-  If commandline Like "* -cache *" Then
-    start = InStr(commandline, "-cache")
-    tmp = Mid(commandline, start, Len(commandline))
-    tmp = Trim(tmp)
-    tmp = Split(tmp, " ", "", True, False)[1]
-    tmp = Trim(tmp)
-    Return tmp
-      Else
-    Return "0"
-  Endif
-End
-
-
 
 
 
@@ -875,20 +955,20 @@ Public Function do_preload(filename As String, timeout As Integer)
   cmd &= "--cache=no --vo null --ao=null --speed=2 "
   cmd &= "'" & filename & "'" & " "
   cmd &= "&>/dev/null"
-  Debug "*****************************" & cmd
   Shell cmd
 End
 
+Public idleplaying As Boolean = False
 
-
-Public Function do_IdlePlay(filename As String) As Boolean
+Public Function do_IdlePlay(Optional filename As String) As Boolean
   'warning: call this function is mutually exclusive to calling do_play()
   'eg: if you started mpv with do_play(), you need another instance Of this class.
+  
   'check if the process is alive || start it
-
+  ClearMediaProperties()
   If Not ProcessRunningOvr() Then
     mpvoptions.Clear
-    set_option("input-file", SetUpInputPipe())
+    set_option("input-ipc-server", SetUpInputPipe())
     set_option("msg-color", "no")
     'set_option("term-status-msg", "")    
     set_option("term-status-msg", play_initialized_str)
@@ -897,14 +977,30 @@ Public Function do_IdlePlay(filename As String) As Boolean
     set_option("idle", "yes")
     set_option("cache", "no")
     commandline = executable(600) & set_options()
+    idleplaying = True
     playerprocess = Shell commandline For Read Write As "playerprocess"
+      Else
+    set_property_mpv("options/term-status-msg", play_initialized_str)
   Endif
-
+  
+  'wait for mpv to actually accept ipc commands.
+  'to check that, set a property and hammer it until it answers correctly.
+  Repeat
+    set_property_mpv("options/term-status-msg", play_initialized_str)
+    get_property_mpv("options/term-status-msg", False,, False)
+    Wait
+  Until (getp("options/term-status-msg", "nul") = play_initialized_str) Or (ProcessRunningOvr() = False)
+  If ProcessRunningOvr() = False Then
+    Debug "No idle mpv instance found!"
+    Debug "Crashed?"
+  Endif
+  
   mpv_command(["loadfile", SConv(FileName)])
   setP("fullpath", filename)
   do_leave_pause(False)
   If Not quick Then get_mediainfo(False)
   mpv_command(["stop"])
+
 End
 
 
@@ -959,6 +1055,21 @@ Private SUPPORTEDAUDIOFILTERS As New String[]
 
 
 
+Public Sub ExecutePreCmd()
+  If Trim(PreCommand) <> "" Then 
+    Shell DConv(preCommand) Wait
+  Endif
+End
+
+Public Sub ExecutePostCmd()
+  If Trim(PostCommand) <> "" Then 
+    Shell DConv(PostCommand) Wait
+  Endif
+End
+
+
+Event user_stopping(fullpath As String, timepos As String, percent As String)
+
 Public Function ProcessRunningOvr() As Boolean
   'As gambas returns runtime error if process is not ready,
   'we'll catch it here
@@ -976,7 +1087,11 @@ Public Function do_stop() As Boolean
   stopping = True
 
   If Not restarting Then 
-    If ProcessRunningOvr() Then user_stopped = True
+    If ProcessRunningOvr() Then 
+      user_stopped = True
+      Try event_loop.stop
+      Raise user_stopping(getP("fullpath"), get_property_mpv("=time-pos", True, 1, True), get_property_mpv("=percent-pos", True, 1, True))
+    Endif
     ClearMediaProperties()
     properties_changed_runtime.clear
     StopOverBrightAnalyze()
@@ -1013,13 +1128,13 @@ End
 
 Public Function do_SetVolume(Percentual As String, Optional osd As Boolean = False) As Boolean
   If Not ProcessRunningOvr() Then Return
-  set_property_mpv("volume", Percentual, osd)
+  set_property_mpv(volumeproperty, Percentual, osd)
 End
 
 
 Public Function do_volume_add(Percentual As String, Optional osd As Boolean = False) As Boolean
   If Not ProcessRunningOvr() Then Return
-  set_property_mpv("volume", Percentual, osd)
+  set_property_mpv(volumeproperty, Percentual, osd)
 End
 
 '######################### Media Properties Section
@@ -1029,18 +1144,18 @@ End
 
 
 
-Public Function CurrentTime() As String
+Public Function CurrentTime(Optional cached As Boolean = False) As String
   Dim reply As String
   If Not ProcessRunningOvr() Then Return "0" 
-  reply = get_property_mpv("=time-pos")
+  reply = get_property_mpv("=time-pos", True,, cached)
   Try Return Split(reply, ".")[0]
   If Error Then Return "0"
 End
 
-Public Sub CurrentTimeFloat() As String
+Public Sub CurrentTimeFloat(Optional cached As Integer = False) As String
   Dim out As String
   If Not ProcessRunningOvr() Then Return "0"
-  out = get_property_mpv("=time-pos")
+  out = get_property_mpv("=time-pos", True,, cached)
     If out = "" Then 
       Return "0"
     Else
@@ -1055,7 +1170,7 @@ End
 
 Public Function IsSubFile(SubfilePath As String) As Boolean
 
-  Dim SubExtensions As String = "*.SRT;*.ASS;*.SUB;*.SSA;"
+  Dim SubExtensions As String = "*.SRT;*.ASS;*.SUB;*.SSA;*.SCC"
   Dim fileExt As String = "." & File.Ext(SubfilePath)
 
   If Fileext = "." Then Return False
@@ -1088,7 +1203,7 @@ Public Function get_screenshot(DeleteFILE As Boolean) As Picture
 
   mpv_command(["no-osd", "screenshot_to_file", picfile, "video"])
 
-  While Not Exist(picfile) 'wait for mplayer answer
+  While Not Exist(picfile, True) 'wait for mplayer answer
     Wait 0.05
     timeout = timeout - 1
   Wend
@@ -1219,7 +1334,7 @@ Public Function DeMuxerslist() As String[]
         mpline = Right(mpline, -1)
         spaces_before &= " "
       Wend
-      MPWord = MPWord & spaces_before & Right(mpline, - Len(mpword))
+      MPWord = MPWord & spaces_before & Right(mpline, -Len(mpword))
       FuncOUT.Add((MPWord))
     Endif
   Next
@@ -1294,10 +1409,27 @@ Private columnpriv As Integer
 Private rowpriv As Integer
 Private gridpriv As Gridview
 
+Private Function play_success() As Boolean 
+  'since mpv exit with success status code (0) even in case of errors
+  '(Eg: he cannot identify a file), this tries to guess if something bad happened
+  'by examining the properties he got from the media.
+  If getP("play_initialized") = "yes" Then Return True
+  If getP("artist") <> "" Then Return True
+  If getP("author") <> "" Then Return True
+  If getP("album") <> "" Then Return True
+  If getP("genre") <> "" Then Return True
+  If getP("year") <> "" Then Return True
+  If getP("trackno") <> "" Then Return True
+  If getP("percent_pos") <> "" Then Return True
+  If getP("time-pos") <> "" Then Return True
+  If getP("duration") <> "" Then Return True
+  Return False
+End
+
 
 
 Public Sub savethumb(fullpath As String, newfilename As String, Optional width As Integer = 256, Optional seconds As Integer = 300, mygrid As Gridview, row As Integer, column As Integer) 
-  Dim outdir As String = Shell(Temp()) & Rnd(0, 99999)
+  Dim outdir As String = Temp() & Rnd(0, 99999)
   Dim cmdline As String = ""
 
   Mkdir outdir
@@ -1309,7 +1441,7 @@ Public Sub savethumb(fullpath As String, newfilename As String, Optional width A
   'Create the thumb, but exit after 30 seconds 
   cmdline = executable(5) & " " & Shell(fullpath) & " --cache=no "
   cmdline &= "-vf scale=" & width & ":-2" & ",expand=::::1/1" & " --no-sub" & " --start " & seconds 
-  cmdline &= " -frames 1 --no-audio --vo=image:format=jpg:jpeg-quality=80:outdir=" & outdir
+  cmdline &= " -frames 1 --no-audio --vo=image --vo-image-format=jpg --vo-image-jpeg-quality=80 --vo-image-outdir=" & outdir
   cmdline &= " --config=no -quiet &>/dev/null"
 
   newfilenamepriv = newfilename
@@ -1323,14 +1455,34 @@ End
 
 Private restarting As Boolean = False
 Public Sub playerprocess_kill()
+  Dim bPlay_success As Boolean
+  Dim fullpath As String
+  Dim percent As String
+
+  fullpath = get_property_mpv("fullpath", True, 1, True)
+  percent = get_property_mpv("percent-pos", True, 1, True)
+  If percent = "99" Then percent = "100" '<-i'm 99% sure of this :P
+  bPlay_success = play_success()
+  If bPlay_success Then
+    subsequent_failures = 0
+      Else
+    subsequent_failures += 1
+  Endif
   return_value = playerprocess.value
+  
   If (Not restarting) Then 
     ClearMediaProperties()
-    Raise mykill(return_value)
+    'af_current = "."
+    'vf_current = "."
+    Try event_loop.stop
+    Raise mykill(return_value, bPlay_success, fullpath, percent)
+
+    'post cmd is supposed to be filled in the mykill() event handler.
+    ExecutePostCmd()
   Endif
 End
 
-Event mykill(return_value As Integer)
+Event mykill(return_value As Integer, initialized_success As Boolean, fullpath As String, percent As String)
 Event ThumbAvailableFor(fullpath As String, g As Gridview, r As Integer, c As Integer)
 Event ThumbErrorFor(fullpath As String, g As Gridview, r As Integer, c As Integer)
 
@@ -1339,7 +1491,7 @@ Private ShortMovieChecked As Boolean = False
 Public Sub thumbprocess_kill()
   Try Copy outdirpriv & "/" & Dir(outdirpriv, "*")[0] To newfilenamepriv
   Shell "rm -R " & outdirpriv & "&>/dev/null"
-  If Exist(newfilenamepriv) Then
+  If Exist(newfilenamepriv, True) Then
     Raise ThumbAvailableFor(Thumbfullpathpriv, gridpriv, rowpriv, columnpriv)
       Else
     If ShortMovieChecked Then 
@@ -1408,7 +1560,7 @@ Public Sub Analyze(videofile As String)
     mystream = Open tmpdir & "/fifo" For Write
     Print #mystream, "no-osd set pause yes"
     'cmd = "mplayer  -noconfig all -noautosub -nosub -osdlevel 0  -lavdopts fast:skiploopfilter=all -speed 0.01 -slave -input file=" & tmpdir & "/fifo  -vf scale=64:64:0:3,scale=16:16:0:3,smartblur=5:1:0,scale -nosound -vo jpeg:quality=100:outdir=" & tmpdir & " " & videofile & " </dev/null &> " & tmpdir & "/mpout"
-    cmd = executable() & " --term-status-msg='${=time-pos}' --config=no --no-sub --osd-level=0 --vd-lavc-skiploopfilter=all --speed 0.01 --input-file=" & tmpdir & "/fifo --vf=scale=16:16  --no-audio --vo=image:format=png:outdir=" & tmpdir & " " & videofile & " </dev/null &> " & tmpdir & "/mpout"
+    cmd = executable() & " --term-status-msg='${=time-pos}' --config=no --no-sub --osd-level=0 --vd-lavc-skiploopfilter=all --speed 0.01 --input-ipc-server=" & tmpdir & "/fifo --vf=scale=16:16  --no-audio --vo=image:format=png:outdir=" & tmpdir & " " & videofile & " </dev/null &> " & tmpdir & "/mpout"
     'cmd = "mplayer  -noconfig all -noautosub -nosub -osdlevel 3  -lavdopts fast:skiploopfilter=all -speed 0.01 -slave -input file=" & tmpdir & "/fifo  -nosound -vo jpeg:quality=100:outdir=" & tmpdir & " " & videofile & " </dev/null &> " & tmpdir & "/mpout"
     global.myDebug(cmd)
     mpanalyze = Shell cmd
@@ -1416,7 +1568,7 @@ Public Sub Analyze(videofile As String)
       If stopob Then Goto lEnd
       Sleep 0.05
       Try t = File.Load(tmpdir & "/mpout")
-    Until (Not Error )
+    Until (Not Error)
     Repeat
       Try outfile = Split(File.Load(tmpdir & "/mpout"), "\n")
       Sleep 0.05
@@ -1448,7 +1600,7 @@ Public Sub Analyze(videofile As String)
       
       'wait for pic
       timeout = 100
-      If Not Exist(tmpdir) Then Goto lStart
+      If Not Exist(tmpdir, True) Then Goto lStart
       While Dir(tmpdir, "*.png").count = 0 And (timeout > 0) And mpanalyze.state = Process.Running
         Wait 0.01
         timeout -= 1
@@ -1471,7 +1623,7 @@ Public Sub Analyze(videofile As String)
       Try cTimei = Split(cTime, ".")[0]
       Try cTimef = Split(cTime, ".")[1]
       Try t = tmpdir & Dir(tmpdir, "*.png")[0]
-      If Exist(t) Then
+      If Exist(t, True) Then
         Try i = i.Load(tmpdir & Dir(tmpdir, "*.png")[0])
         'Shell "mv  " & (tmpdir & Dir(tmpdir, "*.jpg")[0]) & " /tmp/tmp/" & ctime & ".jpg" Wait
         If Not Error Then 
@@ -1542,7 +1694,7 @@ Public Sub TimerAnalize_timer()
 End
 
 
-Private mystream As Stream
+Private mystream As Socket
 Private Function SetUpInputPipe() As String
   Dim Random1 As Integer = 0
   Randomize
@@ -1552,7 +1704,15 @@ Private Function SetUpInputPipe() As String
   If Exist(inputpipe, True) Then 
     Shell "rm '" & inputpipe & "' &>/dev/null" Wait
   Endif
-  mystream = Pipe inputpipe For Write
+  
+  
+  ' 'mystream = Pipe inputpipe For Write
+  mystream = New Socket
+  If global.NeedNetLocal() Then
+    mystream.connect(inputpipe, Net.local)
+      Else
+    mystream.connect(inputpipe)
+  Endif
   global.myDebug("inputpipe=", inputpipe)
 
   Return inputpipe
@@ -1582,7 +1742,7 @@ Public Function set_property_mpv(name As String, data As String, Optional osd As
   'mpv_command(["set_property_string", name, data])
   Dim s As String = "\\"
   Dim q As String = "\""
-
+  
   data = Replace(data, q, s & q)        'replace " with \"
   data = Replace(data, s & s & q, s & q) 'replace \\" with \" (in case we quoted an already quoted string)
   If osd Then 
@@ -1598,7 +1758,7 @@ Public Function add_property_mpv(name As String, data As String, Optional osd As
   'mpv_command(["set_property_string", name, data])
   Dim s As String = "\\"
   Dim q As String = "\""
-
+  'If InStr(data, "\\") > 0 Then Stop 
   data = Replace(data, q, s & q)        'replace " with \"
   data = Replace(data, s & s & q, s & q) 'replace \\" with \" (in case we quoted an already quoted string)
   If osd Then 
@@ -1618,47 +1778,198 @@ Public Sub list_options() As String[]
   If available_options.count > 0 Then Return available_options
   Shell executable() & " --list-options|grep '\\-\\-'|cut -d '-' -f 3-|cut -d ' ' -f 1" To opts
   For Each o In Split(opts, "\n", "", True)
-    available_options.Add(o)
+    If Len(o) > 1 Then available_options.Add(o)
   Next
   Return available_options
 End
 
+Private options_infos As New Collection
 
+Public Function options_info() As Collection
+  Dim outfile As String = Temp()
+  'warning: call this function is mutually exclusive to calling do_play()
+  'eg: if you started mpv with do_play(), you need another instance Of this class.
 
-Public Function old_get_property_mpv(name As String, Optional wait_answer As Boolean = True, Optional timeoutcentisecs As Integer = 100, try_cached As Boolean = False) As String
-  Dim dataout As String
-  Dim cachedP As Variant
-  If try_cached Then
-    Try cachedP = getP(name)
-     If cachedP <> Null Then Return cachedP
+  If options_infos.count > 0 Then Return options_infos
+  
+  'check if the process is alive || start it
+  If Not ProcessRunningOvr() Then
+    mpvoptions.Clear
+    set_option("input-ipc-server", SetUpInputPipe())
+    set_option("msg-color", "no")
+    'set_option("term-status-msg", "")    
+    set_option("term-status-msg", play_initialized_str)
+    set_option("ao", "null")   
+    set_option("vo", "null")   
+    set_option("idle", "yes")
+    set_option("cache", "no")
+    commandline = executable(10) & set_options() & "> " & outfile 
+    idleplaying = True
+    playerprocess = Shell commandline For Read Write As "playerprocess"
+      Else
+    set_property_mpv("options/term-status-msg", play_initialized_str)
   Endif
 
-  dataout = "print-text "
-  dataout &= "ANS_" & name & "|"
-  dataout &= "${"
-  dataout &= name
-  dataout &= ":"
-  dataout &= unavailable_str
-  dataout &= "}"
-  'clear previous answer
-   If wait_answer Then setP(name, Null)
-  'say mpv to answer 
-  send(dataout)
-  'Debug "asking ", dataout
-  If wait_answer Then
-    While (timeoutcentisecs >= 0) And ProcessRunningOvr()
-      Wait 0.1
-      'global.myDebug("got answer?")
-      If getP(name) <> Null Then Return getP(name)
-      timeoutcentisecs -= 10
-      global.myDebug("query has missing answer for property " & name & ", reasking...")
-      send(dataout)
-      ' global.myDebug( "asking ", dataout)
-    Wend
-    'global.myDebug( name & " --> " & getP(name))
-    Return getP(name)
-  Endif
+  'wait for mpv to actually accept ipc commands.
+  'to check that, set a property and hammer it until it answers correctly.
+
+  
+  'wait for mpv to accept commands:
+    Repeat
+      Wait
+    Until ProcessRunningOvr() = True
+    
+    Dim i As Integer = 0
+    Dim started As Boolean = False
+    Repeat
+      mpv_command(["print_text", "padding-start"])
+      Wait 0.01
+      If Exist(outfile, True) Then
+        If Stat(outfile, True).Size > 0 Then
+          started = True
+        Endif
+      Endif
+    Until started
+
+  'dump options info to file
+    Dim opt As String
+    
+    For Each opt In list_options().Sort()
+      mpv_command(["print-text", "${option-info/" & opt & "}"])
+      'Wait
+    Next
+
+    
+  'wait for mpv to print all
+    Dim mpv_done As Boolean = False
+    mpv_command(["print_text", "padding-end"])
+    Repeat
+      Wait 0.01
+      If Exist(outfile) Then
+        If InStr(File.Load(outfile), "padding-end") > 1 Then
+          mpv_done = True
+        Endif
+      Endif
+    Until mpv_done
+
+    mpv_command(["quit"])
+    Repeat
+      Wait
+    Until ProcessRunningOvr() = False
+    
+  'parse it
+  Dim sLine As String
+  Dim option_info As MpvOptionInfo
+
+  If Not (Exist(outfile, True)) Then Return Null
+  
+  For Each sLine In Split(File.Load(outfile), "\n", "", True)
+    If sLine Begins "name=" Then
+      'Print sLine
+
+      Try options_infos[option_info.name] = option_info
+      option_info = New MpvOptionInfo
+      option_info.name = Right(sLine, -InStr(sLine, "="))
+      Continue
+    Endif
+    If sLine Begins "type=" Then
+      option_info.type = Right(sLine, -InStr(sLine, "="))
+      Continue
+    Endif    
+
+    If sLine Begins "default-value=" Then
+      option_info.default_value = Right(sLine, -InStr(sLine, "="))
+      Continue
+    Endif        
+    
+    If sLine Begins "min=" Then
+      option_info.min = Right(sLine, -InStr(sLine, "="))
+      Continue
+    Endif    
+    
+    If sLine Begins "max=" Then
+      option_info.max = Right(sLine, -InStr(sLine, "="))
+      Continue
+    Endif    
+    
+    If sLine Begins "choices=" Then
+      option_info.choices = New String[]
+      option_info.choices = Split(Right(sLine, -InStr(sLine, "=")), ",", "", True)
+      Continue
+    Endif    
+
+  Next
+  Try options_infos[option_info.name] = option_info
+  Return options_infos
+  
 End
+
+
+
+
+' Public Function old_options_info() As Collection
+'   Dim opt As String
+'   Dim commands As String
+'   Dim t As String = Temp()
+'   Dim out, sLine, choice As String
+'   Dim jdec, data As Variant
+'   Dim option_info As MpvOptionInfo
+' 
+'   
+'   If options_infos.count > 0 Then Return options_infos
+'   
+'   For Each opt In list_options()
+'     commands &= ("print-text ${option-info/" & opt & "}") & "\n"
+'   Next
+'   commands &= "quit" & "\n"
+'   File.Save(t, commands)
+'   Stop
+'   'FIXME When input-fileis now deprecated; when/if it will be removed, we'll need to change the following:  
+'   Shell executable() & " --idle --input-file=" & t To out
+'   
+' 
+'   For Each sLine In Split(out, "\n", "", True)
+'     If sLine Begins "name=" Then
+' 
+'       Try options_infos[option_info.name] = option_info
+'       option_info = New MpvOptionInfo
+'       option_info.name = Right(sLine, -InStr(sLine, "="))
+'       Continue
+'     Endif
+'     If sLine Begins "type=" Then
+'       option_info.type = Right(sLine, -InStr(sLine, "="))
+'       Continue
+'     Endif    
+' 
+'     If sLine Begins "default-value=" Then
+'       option_info.default_value = Right(sLine, -InStr(sLine, "="))
+'       Continue
+'     Endif        
+'     
+'     If sLine Begins "min=" Then
+'       option_info.min = Right(sLine, -InStr(sLine, "="))
+'       Continue
+'     Endif    
+'     
+'     If sLine Begins "max=" Then
+'       option_info.max = Right(sLine, -InStr(sLine, "="))
+'       Continue
+'     Endif    
+'     
+'     If sLine Begins "choices=" Then
+'       option_info.choices = New String[]
+'       option_info.choices = Split(Right(sLine, -InStr(sLine, "=")), ",", "", True)
+'       Continue
+'     Endif    
+' 
+'   Next
+' 
+'   Try options_infos[option_info.name] = option_info
+'   
+'   Return options_infos
+'   
+' End
+
 
 Public Function get_property_mpv(name As String, Optional wait_answer As Boolean = True, Optional timeout_sec As Integer = 10, try_cached As Boolean = False) As String
   Dim cachedP As Variant
@@ -1673,7 +1984,8 @@ Public Function get_property_mpv(name As String, Optional wait_answer As Boolean
   Try Return getP(name)
 End
 
-Private Function ask_for(name As String, not_retrived As String, clear_first As Boolean)
+
+Private Function ask_for(name As String, not_retrived As String)
   Dim dataout As String
   dataout = "print-text "
   dataout &= "ANS_" & name & "|"
@@ -1681,168 +1993,80 @@ Private Function ask_for(name As String, not_retrived As String, clear_first As 
   dataout &= name
   dataout &= ":" & not_retrived
   dataout &= "}"
-  'clear previous answer
-  If clear_first Then setP(name, Null)
-  'say mpv to answer 
   send(dataout)
 End
 
-
-' Public Function old_get_properties_mpv(names As String[], Optional wait_answer As Boolean = True, Optional wait_unavailable As Boolean = False, Optional timeoutcs As Integer = 500)
-'   Dim name, dataout, p As String
-'   Dim got As Boolean
-'   For Each name In names
-'     dataout = "print-text "
-'     dataout &= "ANS_" & name & "|"
-'     dataout &= "${"
-'     dataout &= name
-'     dataout &= ":(unavailable)}"
-'     'clear previous answer
-'     If wait_answer Then setP(name, Null)
-'     'say mpv to answer 
-'     send(dataout)
-'   Next 'name
-'   
-'   If Not wait_answer Then Return
-'   'wait for all of the answers
-'   Repeat
-'     If (Not got) Then
-'       Wait 0.01
-'       timeoutcs -= 0.01
-'     Endif
-'     got = True
-'     For Each name In names
-'       p = getP(name) 
-'       If wait_unavailable Then 
-'         If (p <> Null) And (p <> "(unavailable)") Then names.Remove(names.Find(name))
-'           Else
-'         If (p <> Null) Then names.Remove(names.Find(name))
-'       Endif
-'       got = (got And (p <> Null))
-'       If Not got Then 
-'         global.myDebug("waiting", name)
-'       Endif
-'     Next
-'   Until got Or (Not ProcessRunningOvr()) Or (timeoutcs <= 0)
-' End
-
-Public Function OLD_get_properties_mpv(names As String[], Optional wait_answer As Boolean = True, Optional wait_unavailable As Boolean = False, Optional timeoutcs As Integer = 500)
-  Dim name, dataout, p As String
-  Dim unanswered As String = Chr(8) & "unanswered" & Chr(8) 'indica che mpv non ha risposto
-  Dim got As Boolean
-  For Each name In names
-    dataout = "print-text "
-    dataout &= "ANS_" & name & "|"
-    dataout &= "${"
-    dataout &= name
-    dataout &= ":(unavailable)}"
-    'clear previous answer
-    If wait_answer Then setP(name, Null)
-    'say mpv to answer 
-    send(dataout)
-  Next 'name
-  
-  If Not wait_answer Then Return
-  'wait for all of the answers
-  'setP(name, unanswered)
-  Repeat
-    If (Not got) Then
-      Wait 0.01
-      timeoutcs -= 0.01
-    Endif
-    got = True
-    For Each name In names
-'Stop
-      p = getP(name, unanswered) 
-      If wait_unavailable Then 
-        If (p <> unanswered) And (p <> "(unavailable)") Then names.Remove(names.Find(name))
-          Else
-        If (p <> unanswered) Then names.Remove(names.Find(name))
-      Endif
-      got = (got And (p <> unanswered))
-      If Not got Then 
-        global.myDebug("waiting", name)
-      Endif
-    Next
-  Until got Or (Not ProcessRunningOvr()) Or (timeoutcs <= 0)
-End
-
-
 Public Const unavailable_str As String = "(unavailable)"
+
 
 Public Function get_properties_mpv(names As String[], Optional wait_answer As Boolean = True, Optional wait_unavailable As Boolean = False, Optional timeout_sec As Integer = 5)
   Dim name, dataout, p As String
   Dim unanswered As String = Chr(8) & "unanswered" & Chr(8) 'indica che mpv non ha risposto
   Dim got As Boolean
   Dim time_zero As Float = Timer()
+  Dim p_timestamp As Float = -1
   Dim time_waited As Float
   Dim hammer_time As Float = 0.01
   Dim hammer_time_max As Float = 0.5
   For Each name In names
-    ask_for(name, unavailable_str, wait_answer)
+    ask_for(name, unavailable_str)
   Next 'name
-  If get_option("vd-lavc-skiploopfilter") = "all" Then
-    'Stop
-  Endif
+
   If Not wait_answer Then Return
+
   'wait for all of the answers
-  'setP(name, unanswered)
   Repeat
     If (Not got) Then
       Wait hammer_time
     Endif
     got = True
     For Each name In names
-'Stop
-      p = getP(name, unanswered) 
+      p = getP(name) 
+      p_timestamp = getP_time(name)
       If wait_unavailable Then 
-        If (p <> unanswered) And (p <> unavailable_str) Then names.Remove(names.Find(name))
+        If (p_timestamp > time_zero) And (p <> unavailable_str) Then names.Remove(names.Find(name))
           Else
-        If (p <> unanswered) Then names.Remove(names.Find(name))
+        If (p_timestamp > time_zero) Then names.Remove(names.Find(name))
       Endif
-      got = (got And (p <> unanswered))
+      got = (got And (p_timestamp > time_zero))
       If Not got Then 
         global.myDebug("waiting for", name, "reasking...")
         'hammer_time += 0.01
         hammer_time *= 2
         If (hammer_time >= hammer_time_max) Then hammer_time = hammer_time_max
         global.myDebug(CStr(timeout_sec - time_waited) & " to timeout.", "hammering every " & CStr(hammer_time) & " seconds.")
-        global.myDebug("Answer (p) is:", p)
-        ask_for(name, unavailable_str, wait_answer)
+        ask_for(name, unavailable_str)
+          Else
+        global.myDebug("Got answer to " & name & " in " & CStr(p_timestamp - time_zero), "Answer is: " & p)
       Endif
+
     Next
     time_waited = (Timer() - time_zero)
     
   Until got Or (Not ProcessRunningOvr()) Or (time_waited > timeout_sec)
 End
 
+
+
 Public Function paused(Optional cached As Boolean = False) As Boolean
   Return get_property_mpv("pause",,, cached) = "yes"
 End
 
-' Private Sub mpv_command(command As String[])
-'   Dim snip, sbuf As String
-' 
-'   sbuf = "{ \"command\": ["
-'     For Each snip In command
-'       sbuf &= "\"" & snip & "\", "
-'     Next
-'     sbuf = Left(sbuf, -2)
-'   sbuf &= "] }" & "\n" '<-serve l'accapo finale? il send già lo manda
-' 
-'   global.myDebug( sbuf)
-'   send(sbuf)
-' End
-
 Public Sub mpv_command(command As String[])
   Dim snip, sbuf As String
+  
+ 
   For Each snip In command
+    'If snip Like "*scale*" Then Stop
     sbuf &= "\"" & snip & "\"" 
     sbuf &= " "
   Next
   sbuf = Left(sbuf, -1)
+  'remove escaped commas:
+  sbuf = Replace(sbuf, "\\,", ",")
   send(sbuf)
   global.myDebug(sbuf)
+  'If sbuf Like "*anequalizer*" Then Debug sbuf
 End
 
 
@@ -1901,13 +2125,44 @@ Public Sub _new()
 End
 
 
+Private send_count As Integer = 0
 Public Function send(data As String, Optional osd As Boolean = True)
+
+  'for some reason mpv and gambas get stuck at come point if using socket instead of named pipes.
+  'fortunately, i found that if i close and reopen the stream the problem goes away.
+  'seems that 'resettin' it every 500 calls makes it work well.
+  If send_count >= 500 Then 
+    send_count = 0
+    mystream.close
+  Endif
+  send_count += 1
+
+  'when we used the deprecated --input-file option, the file had to be created before the play.
+  'with input-ipc-server, it is created by mpv itself; so we've to connect to it later
+  
+  If mystream = Null Then mystream = New Socket
+  If mystream.status <> Net.connected Then 
+    If global.NeedNetLocal() Then
+      mystream.connect(inputpipe, Net.local)
+        Else
+      mystream.connect(inputpipe)
+    Endif
+  Endif
+
+
+
+  
   If Not ProcessRunningOvr() Then Return
   If osd Then 
     Try Write #mystream, data & "\n"
       Else
     Try Write #mystream, "no-osd " & data & "\n"
   Endif
+  
+
+  
+  
+  
 End
 
 
@@ -1931,46 +2186,69 @@ Private Function deQuote(S As String) As String
   Return s
 End
 
+Private Function cFuzzy_exist(sKey As String, c As Collection) As Boolean
+  Dim d As String
+  'return if "[spaces]&sKey" key is found in collection c
+  If c.Exist(sKey) Then Return True
+  For Each d In c
+    If Trim(skey) = Trim(c.key) Then Return True
+  Next
+  Return False
+End
 
 
-Private Function what_changes(oldc As Collection, newc As Collection) As Collection
+Private Function what_changes_and_av_filters(oldc As Collection, newc As Collection) As Collection
   Dim out As New Collection
   Dim data, k As String
+  
+  Dim i As Integer
+
   'given 2 collections, returns a new collection
   'built from changed key values, removed keys,added keys
+  'always return audio and video filters from the new collection
   
   For Each data In newc
-    k = Trim(newc.key)
-    If oldc.Exist(k) Then
-      If deQuote(oldc[k]) <> deQuote(newc[k]) Then 
-        global.myDebug("old option changed", k, oldc[k], newc[k])
-        out[k] = newc[k]
+    'k = Trim(newc.key)
+    k = newc.key
+    If (Trim(k) <> "af-add") And (Trim(k) <> "vf-add") Then 'treat audio and video filters differently.
+      If cFuzzy_exist(k, oldc) Then
+        If deQuote(oldc[k]) <> deQuote(newc[k]) Then 
+          global.myDebug("old option changed", k, oldc[k], newc[k])
+          out[k] = newc[k]
+        Endif  
+          Else      'If Not (oldc.Exist(k)) Then
+      global.myDebug("New option added", k, newc[k])
+      out[k] = newc[k]
       Endif
     Endif
-
-  If Not (oldc.Exist(k)) Then
-       global.myDebug("New option added", k, newc[k])
-       out[k] = newc[k]
-    Endif
+    
   Next
 
   For Each data In oldc
     k = Trim(oldc.key)
-    If Not (newc.Exist(k)) Then
-       global.myDebug("old option removed", k, oldc[k])
-       out[k] = "|(removed)|"
+    If (Trim(k) <> "af-add") And (Trim(k) <> "vf-add") Then 'treat audio and video filters differently.
+      If Not (cFuzzy_exist(k, newc)) Then
+         global.myDebug("old option removed", k, oldc[k])
+         out[k] = "|(removed)|"
+      Endif
     Endif
   Next
-
+  
+  For Each data In newc
+    k = Trim(newc.key)
+    If (k = "af-add") Or (k = "vf-add") Then '
+      out[newc.key] = newc[newc.key]
+    Endif
+  Next
+  
   Return out
   
 End
 
 
+Private ignore_opts As New String[]
 
-Private ignore_opts As String[]
-
-Public Sub do_apply(new_opts As Collection) ', Optional only_check_vdpaurb As Boolean = False)
+Public Sub do_apply(new_opts As Collection) 
   Dim realtime_opts As String[] = ["af", "af-add", "af-clr", "af-pre", "vf", "vf-add", "vf-clr", "vf-pre"]
   Dim name, data As String
   Dim changed_opts As New Collection
@@ -1978,22 +2256,26 @@ Public Sub do_apply(new_opts As Collection) ', Optional only_check_vdpaurb As Bo
   Dim vf_new As String = ""
   Dim af_pre_new As String = ""
   Dim vf_pre_new As String = ""
+  Dim vf_old As String = ""
+  Dim af_old As String = ""
 
   new_opts = fix_options(new_opts)
-  'If only_check_vdpaurb Then Goto rt_options
   
   'see if we need a restart
-  'make a list of changed options
-  changed_opts = what_changes(mpvoptions, new_opts)
+  'make a list of changed options and audio/video filters
+  changed_opts = what_changes_and_av_filters(mpvoptions, new_opts)
+
+  
+  mpvoptions = new_opts 'for future checks
 
   For Each changed_opts
-    name = changed_opts.Key
+    name = Trim(changed_opts.Key)
     data = changed_opts[changed_opts.Key]
     global.myDebug("changed/added/removed option:", name, data)
     If realtime_opts.Find(name) = -1 Then
       If ignore_opts.find(name) = -1 Then
         global.myDebug("option changed/removed/added: " & name, "requires restart")
-        do_apply_restart(new_opts)
+        do_apply_restart(new_opts, getP("audioonly"))
         Return
       Endif
     Endif
@@ -2004,7 +2286,7 @@ Public Sub do_apply(new_opts As Collection) ', Optional only_check_vdpaurb As Bo
 global.myDebug("No changed option requires restart, setting realtime properties instead")
 'rt_options:
 For Each new_opts
-  name = new_opts.Key
+  name = Trim(new_opts.Key)
   data = new_opts[new_opts.Key]
   If realtime_opts.Find(name) >= 0 Then
     Select Case name
@@ -2044,10 +2326,9 @@ For Each new_opts
         vf_pre_new = ""
     End Select
   Endif
+  If af_new Like "*removed*" Then Stop
 Next
-'Stop
-  ' If Left(af_new, "3") = "-1," Then af_new = Right(af_new, -3)
-  ' If Left(vf_new, "3") = "-1," Then vf_new = Right(vf_new, -3)
+
 
   If Left(af_new) = "," Then af_new = Right(af_new, -1)
   If Left(vf_new) = "," Then vf_new = Right(vf_new, -1)
@@ -2059,28 +2340,67 @@ Next
 
   If af_new = "|(removed)|" Then af_new = ""
   If vf_new = "|(removed)|" Then vf_new = ""
-  set_property_mpv("af", af_new, True)
-' ' ' Stop
-' ' '       'This part is entirely for reinitialize playback with vdpaurb video filter
-' ' '           If vf_new <> "" Then
-' ' '             If want_vdpau() Then 
-' ' '               'we can't add vdpaurb if we're not hw decoding yet, so:
-' ' '                 'clear video filters
-' ' '                 set_property_mpv("vf", "", True)
-' ' '                 Wait 2
-' ' '                 'request hw decoding
-' ' '                 set_property_mpv("hwdec", "vdpau", True)
-' ' '               vf_new = "vdpaurb," & vf_new
-' ' '             Endif
-' ' '           Endif
 
-  set_property_mpv("vf", vf_new, True)
+  If getP("Audioonly") <> True Then 'we don't want effects to be applied to video visualization:
+    'only apply New Filters In realtime If something changed
+      get_properties_mpv(["=vf", "=af"], True, False, 1)
+      vf_old = getP("=vf", "**")
+      set_property_mpv("vf", vf_new, False)
+        'vf_current = vf_new
+      'Endif
+  Endif
 
+      af_new = fix_for_anequalizer(af_new)
+      af_new = fix_for_compand(af_new)
+      af_old = getP("=af", "**")
+      set_property_mpv("af", af_new, False)
+
+      get_properties_mpv(["=vf", "=af"], True, False, 1)
+      vf_new = getP("=vf", "**")
+      If vf_old <> vf_new Then ShowText(("Video filter chain reconfigured"), 750)
+      af_new = getP("=af", "**")
+      If af_old <> af_new Then ShowText(("Audio filter chain reconfigured"), 750)
+
+  
   ReturnLabel:
   Return
 
 End
 
+Private Function fix_for_compand(af As String) As String
+  Dim istart, iend As Integer
+  Dim sOut As String
+
+'  "lavfi=[compand=" & eqstring(False) & ]"     this way it works in realtime only
+'  lavfi=[compand=" & eqstring(False) & "]   this way it works at start
+  istart = InStr(af, "\"lavfi=[compand")
+  
+  If istart = 0 Then Return af
+
+  iend = InStr(af, "]\"", istart)
+  If iend = 0 Then Return af 'something wrong...
+  sOut = Left(af, istart - 1) & Mid(af, istart + 1, iend - Len(af)) & Right(af, -iend - 1)
+
+  Return sout
+End
+
+Private Function fix_for_anequalizer(af As String) As String
+  Dim istart, iend As Integer
+  Dim sOut As String
+
+'  lavfi=[anequalizer=" & eqstring(False) & "]   this way it works at start
+' "lavfi=[anequalizer=" & eqstring(False) & ]"  this way it works in realtime only
+
+  istart = InStr(af, "\"lavfi=[anequalizer")
+  
+  If istart = 0 Then Return af
+
+  iend = InStr(af, "]\"", istart)
+  If iend = 0 Then Return af 'something wrong...
+  sOut = Left(af, istart - 1) & Mid(af, istart + 1, iend - Len(af)) & Right(af, -iend - 1)
+
+  Return sout
+End
 
 
 Public Function want_vdpau() As Boolean
@@ -2092,11 +2412,11 @@ Public Function want_vdpau() As Boolean
   ' hwdec_active = get_property_mpv("hwdec-active") 
   ' If hwdec_active = "yes" Then Return 'return if we're already hwdecoding
 
-  hwdec_detected = get_property_mpv("hwdec-detected")
+  hwdec_detected = get_property_mpv("hwdec-current")
   If hwdec_detected <> "vdpau" Then Return 'continue only if we're using vdpau
 
   ' vf = Trim(get_property_mpv("vf"))
-  ' If vf <> "(empty)" Then Return 'no need of vdpaurb if no filters are requested
+
 
   'If we are here thaen it means:
   'user wants hardware decoding through vdpau
@@ -2107,7 +2427,7 @@ Public Function want_vdpau() As Boolean
 End
 
 
-Public Sub do_apply_restart(new_opts As Collection)
+Public Sub do_apply_restart(new_opts As Collection, Optional audioonly As Boolean = False)
   Dim name, data, newdata As String
   Dim timepos As String = "0"
   Dim fullpath As String
@@ -2115,7 +2435,6 @@ Public Sub do_apply_restart(new_opts As Collection)
   Dim timerA As Float
   Dim properties_changed_runtime_old_datas As New Collection
   Dim olddata As String = "--------------"
-  'Dim only_check_vdpaurb As Boolean = True
 
   restarting = True
 
@@ -2126,19 +2445,22 @@ Public Sub do_apply_restart(new_opts As Collection)
     properties_changed_runtime_old_datas[name] = data
   Next
   
-  
+
   If ProcessRunningOvr() Then
     clear_options()
     For Each data In new_opts
       set_option(new_opts.key, data)
     Next
+
     fullpath = getP("fullpath")
     timepos = get_property_mpv("=time-pos")
     set_option("start", timepos)
+
     do_play(fullpath,, restart = True)
   Endif
 
   waitplayback(500)
+  set_property_mpv("options/start", "0")
 
   'Restore properties changed runtime before the restart
   'more tries are needed because mpv needs to initialize
@@ -2146,24 +2468,24 @@ Public Sub do_apply_restart(new_opts As Collection)
   'so check if the answer is different from mplayer.unavailable_str
   'and don't spend too much time anyway waiting for the property.
     For Each properties_changed_runtime
-      global.myDebug("Try to restore Property:", name, data)
-      timerA = Timer()
-      Repeat
-        name = properties_changed_runtime.key
-        data = properties_changed_runtime[name]
-        olddata = Null
-        Try olddata = properties_changed_runtime_old_datas[name]
-        set_property_mpv(name, data, False)
+        global.myDebug("Try to restore Property:", name, data)
+        timerA = Timer()
+        Repeat
+          name = properties_changed_runtime.key
+          If name <> "options/start" Then 'we don't want to restore start property...
+            data = properties_changed_runtime[name]
+            olddata = Null
+            Try olddata = properties_changed_runtime_old_datas[name]
+            set_property_mpv(name, data, False)
+            Wait 0.01
+            newdata = get_property_mpv(name)
+          Endif
+        Until (newdata <> unavailable_str) Or ((Timer() - TimerA) > 10) Or (newdata = olddata) 'dont spend more than one second per property
+        'is it possible that newdata is available but still with an unset value, so, just to be sure, restore it one more time.
         Wait 0.01
-        newdata = get_property_mpv(name)
-      Until (newdata <> unavailable_str) Or ((Timer() - TimerA) > 10) Or (newdata = olddata) 'dont spend more than one second per property
-      'is it possible that newdata is available but still with an unset value, wo, just to be sure, restore it one more time.
-      Wait 0.01
-      set_property_mpv(name, data, False)
-      global.myDebug("Restore property:", name, newdata, data)
+        set_property_mpv(name, data, False)
+        global.myDebug("Restore property:", name, newdata, data)
     Next
-
-  'do_apply(new_opts, only_check_vdpaurb)
 
   restarting = False
 
@@ -2185,7 +2507,7 @@ Public Function search_man(search_for As String, Optional lavfi As Boolean = Fal
     Endif
     For Each st In search_term(search_for, lavfi)
       s_pos = InStr(man_page_lavfi, st) 
-      If s_pos > 0 Then Return Left(Right(man_page_lavfi, - s_pos), 80 * 300)
+      If s_pos > 0 Then Return Left(Right(man_page_lavfi, -s_pos), 80 * 300)
       Wait
     Next
       Else 'mpv man
@@ -2196,7 +2518,7 @@ Public Function search_man(search_for As String, Optional lavfi As Boolean = Fal
     Endif
     For Each st In search_term(search_for)
       s_pos = InStr(man_page, st) 
-      If s_pos > 0 Then Return Left(Right(man_page, - s_pos), 80 * 100)
+      If s_pos > 0 Then Return Left(Right(man_page, -s_pos), 80 * 100)
       Wait
     Next
   Endif
@@ -2272,5 +2594,32 @@ Public Function get_chapters(Optional cached As Boolean = False) As Chapter[]
     chapter_list.Add(aChapter)
   Next
   Return chapter_list
+End
+
+
+Public Function audio_add(filename As String)
+  mpv_command(["audio-add", filename])
+End
+
+
+Public Function audio_devices_list(Optional separator As String = " ~ ") As String[]
+  Dim out_devices As New String[]
+  Dim devices As New String[]
+  Dim j, name, desc, out, device As String 
+  Dim jdecoded As New Collection[]
+  Dim i As Integer
+  out = executable() & " --audio-device=help" 
+  Shell out To j
+  If Trim(j) = "" Then Return Null
+  out_devices = Split(j, "\n", "", True)
+  For Each device In out_devices
+    device = Trim(device)
+    If device Like "'*' (*)*" Then
+      name = Split((device), "'")[1]
+      desc = Split((device), "'")[2]  
+      devices.Add(name & separator & desc)
+    Endif
+  Next
+  Return devices
 End
 

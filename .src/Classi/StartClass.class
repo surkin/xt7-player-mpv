@@ -16,10 +16,13 @@ Static Public Sub ProcessSignals(Doit As Boolean)
   Endif
 End
 
-
+' 
 Static Public Sub Application_error()
+
   Dim bt As String[]
   Dim et As String
+  
+  Return
   If BugReport.Already_shown Then Return
   bt = Error.Backtrace
   et = Error.Text
@@ -41,6 +44,7 @@ End
 Static Public Sub Application_Signal(Sig As Integer)
   global.myDebug("Got Signal " & sig & " Quitting as clean as possible")
   ProcessSignals(False)
+  FMain.ButtonStop_Click()
   FMain.Close()
   Quit
 End

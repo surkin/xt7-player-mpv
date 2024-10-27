@@ -2,7 +2,7 @@
 
 { Form Form
   MoveScaled(0,0,36,16)
-  Text = ("ShutDown CountDown...")
+  Text = ("ShutDown CountDown") & "..."
   { AbortBTN Button
     MoveScaled(10,10,16,5)
     AutoResize = True
@@ -17,12 +17,12 @@
     Alignment = Align.Center
   }
   { Label2 Label
-    MoveScaled(0,6,36,4)
-    Text = ("seconds...")
+    MoveScaled(0,6,36,4.5714)
+    Text = ("seconds") & "..."
     Alignment = Align.Center
   }
   { SecondsLabel Label
-    MoveScaled(0,3,36,4)
+    MoveScaled(0,3,36,4.5714)
     Text = ("10")
     Alignment = Align.Center
   }

@@ -1,10 +1,12 @@
-- Glitches in video area if X11 driver is used and the form is resized
-- move colorkey to video output options
-- dimensione dei sottotitoli consistente tra le diverse risoluzioni
-- se alcune informazioni sul file sono disponibili in fase di play, ma non in playlist/gridview, aggiungile, costa nulla.
+pausa se aumentano i drop nel vo
+
+opzioni aggiuntive opengl?
+custom audio/custom video?
+
+
 -autoswitch playlist/video se video presente in autoplay?
 -temi di icone
--permettere l'aggiunta ricorsiva alla playlist?
+ -permettere l'aggiunta ricorsiva alla playlist?
 -drag della seekbar indica a quale secondo ci si posizionerà
 - ctrl-click non deseleziona l'item della library/playlist.
 - filtro hrtf
@@ -39,15 +41,8 @@ uguali, crea dei link e rimuovine una.
 - invertire l'ordine dei risultati youtube?
 - opzione "-volume" per il volume iniziale (possibile prenderla direttamente dalla barra del volume?)
 
--crash alla seconda ripetizione dei sub con queste opzioni:
-__GL_SYNC_TO_VBLANK=1  /usr/local/bin/pagecache-management.sh -k 1024 mplayer -identify -slave  -wid 60820713 -noconfig all  -mouse-movements -mf fps=1:type=bmp -loop 0  -ass  -ass-force-style FontName="Segoe UI",FontSize=22,Bold=1,Italic=Alignment=2,outline=1,OutlineColour=H00000000,MarginV=0,PrimaryColour=H0000FFFF,shadow=2,BackColour=H80000000 -subcp enca:it:iso-8859-1 -sub-fuzziness 0  -font "Bitstream Vera Sans" -sub-bg-alpha 210 -subfont-blur 3 -osd-duration 1000 -subfont-osd-scale 2 -subfont-text-scale 2 -subpos 0 -osdlevel 3 -vf-add scale -vf-pre scale -vo x11  -ao null      -alang "" -slang "" -sub '/tmp/gambas.0/7993/SubSrt.srt.tmp' "mf:///home/root/.config/gambas3/Xt7-Player/SubBackImage*.bmp"
 
 
-
-* opensubtitles integration?
-* mettere lA CATEGORIA AUDIOVIDEO
-* trovare un modo per levare i messaggi di errore di mplayertag dai log
-* ordinare i canali quando si incolonnano nella griglia
 
 
 Se attivi un driver video, poi non si può più disabilitare se è
@@ -282,7 +277,6 @@ FIX: tries hardly (5 seconds limit) to pause mplayer even when it doesn't answer
 
 -----------------------------------------------
 - FIX: removed unused "denoise" option from dering and autolevels video filters
-- FIX: Catch flash videos even with newer flash version: requires 'find' utility.
 
 - NEW: Support for DVB-T streams: requires 'scan' and 'femon' utilities.
 - NEW: Option for subtitles "mkv workaround" see mplayer bug id 1870
@@ -727,52 +721,6 @@ e cachata all'occorrenza che il server vada giù
 ciò è fondamentale per youtube.
 
 
-
-Cambiamenti nel prossimo mpv:
-
---------------------------------------------------------------------------
---------------------------------------------------------------------------
-
-Visualizzazione:
-
-#!/bin/bash
-file="/mnt/nas.crypt/Musica/streamripper/radioparallax/Sixto Sounds - Super Hang On (Burn Baby Burn OC ReMix).mp3"
-file=/mnt/nas.crypt/Musica/Roxette\ -\ Tourism/Roxette\ -\ Tourism\ -\ 16\ -\ Queen\ of\ rain.ogg
-wid="58720645"
-export IFS=$'\n'
-
-#4.5%:
-    graph="amovie=$file,"
-    graph=$graph'asplit [a][out1];'
-    graph=$graph'[a]showspectrum=mode=separate:color=intensity:slide=scroll:s=4x512:color=intensity:win_func=blackman:mode=combined:saturation=1,'
-    graph=$graph'crop=h=(in_h/1.5):y=in_h[spectrum];'
-    graph=$graph'movie=/root/Download/png.png,scale=h=(in_h/1.5)[pic];[spectrum][pic]overlay[out0]'
-
-    mpv av://lavfi:$graph -wid $wid  -no-keepaspect -v
-    exit
-
-#12%
-graph="amovie=$file[musica];"
-#graph=$graph'[musica]asplit=2 [azero][auno];'
-graph=$graph'[musica]asplit=3 [azero][auno][out1];'
-
-graph=$graph'[azero]showspectrum=mode=separate:color=intensity:slide=scroll:s=4x512:color=intensity:win_func=blackman:mode=combined:saturation=1,'
-    graph=$graph'crop=h=(in_h/1.5):y=in_h,'
-    graph=$graph'scale=h=512:w=512:force_original_aspect_ratio=disable[spectrum];'
-
-graph=$graph'[auno]showwaves=s=512x512:mode=line:r=20,'
-    graph=$graph'crop=h=(ih/2):y=(0),crop=h=(ih/2):y=ih,'
-    graph=$graph'colorlevels=romax=0.5[waves];'
-
-graph=$graph'[spectrum][waves]overlay[out0]'
-
-
-    mpv av://lavfi:$graph -wid $wid  -no-keepaspect -v
-    exit
-
-
-
-
 Nel panello di cambiamento automatico di velocità, mettere 2 checkbox:
   [x] Sto usando un'uscita ottica toslink
   [x] voglio codificare un ac3 quando cambio velocità.
@@ -807,4 +755,17 @@ JUNK
 /JUNK
 --------------------------------------------------------------------------
 
+Cambiare modo di cache e usare queste due proprietà:
+Cache limits:
+Max cache in seconds	--demuxer-readahead-secs=3600
+Max cache in Megabytes  --demuxer-max-bytes=10240   
+Aggiurnare la barra della cache quando cambia la proprietà: demuxer-cache-time
+Non calcoliamo più la percentuale, ma andiamo direttamente in secondi.
+
+
+Le funzioni che aggiornano le informazioni sulla cache sono:
+	Update_cache_percent(percentuale)
+		che chiama SetProgressCache
+		che setta una posizione tra 0 e 1 che rappresenta
+		il limite superiore della barra.
 

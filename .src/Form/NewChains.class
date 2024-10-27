@@ -3,6 +3,20 @@
 Public AlreadyLoaded As Boolean = False 'true if the form loaded it's settings from disk at least one time
 Public InitDone As Boolean = False
 
+Public Struct mpvOption
+  name As String
+  data As String
+End Struct
+
+Private Function newopt(name As String, data As String) As MpvOption
+  Dim myopt As New MpvOption
+  myopt.name = name
+  myopt.data = data
+  Return myopt
+End
+
+
+
 Private Sub fill_tabstrip(aTabstrip As Tabstrip, aScrollview As Scrollview)
   Dim i As Integer
   Dim tabScrollview As ScrollView
@@ -12,31 +26,45 @@ Private Sub fill_tabstrip(aTabstrip As Tabstrip, aScrollview As Scrollview)
       aTabstrip.index = i
       aTabstrip.text = aScrollview.Children[i].name
       aTabstrip.Arrangement = Arrange.Vertical
-    If aScrollview.Children[i].name <> "equalizer" Then 'do not make a scrollview for preconfigured (drawed with the ide) filters.
-      tabScrollview = New ScrollView(aTabstrip)
-      tabScrollview.name = aTabstrip.text & ".ScrollView"
-      tabScrollview.expand = True
-      tabScrollview.Arrangement = Arrange.vertical
-      tabScrollview.padding = 8
-      tabScrollview.Spacing = True
-      tabScrollview.border = False
-      tabScrollview.margin = True
-      tabScrollview.ScrollBar = Scroll.Both
-    Endif
-    tabstrip_elements.Add(Lower(aTabstrip.text))
+      'do not make a scrollview for preconfigured (drawed with the ide) filters.
+
+      If Not (is_handmade_filter(aScrollview.Children[i].name)) Then
+      'If (aScrollview.Children[i].name <> "anequalizer") And (aScrollview.Children[i].name <> "acompressor") And (aScrollview.Children[i].name <> "compand") Then 
+        tabScrollview = New ScrollView(aTabstrip)
+        tabScrollview.name = aTabstrip.text & ".ScrollView"
+        tabScrollview.expand = True
+        tabScrollview.Arrangement = Arrange.vertical
+        tabScrollview.padding = 8
+        tabScrollview.Spacing = True
+        tabScrollview.border = False
+        tabScrollview.margin = True
+        tabScrollview.ScrollBar = Scroll.Both
+      Endif
+      tabstrip_elements.Add(Lower(aTabstrip.text))
   Next 'i
   aTabstrip.tag = tabstrip_elements
 End
 
 Private tabs As String[] = ["filters_video", "filters_audio", "drivers_video", "drivers_audio"] '<-this has to reflect the main tabs order
 
+Private Function is_handmade_filter(filter_name As String) As Boolean
+  Dim f As String
+  Dim filters_hand_made As New String[]
+  filters_hand_made = ["anequalizer", "acompressor", "compand", "scale", "superequalizer"]
+  filter_name = Lower(filter_name)
+  For Each f In filters_hand_made
+    If f = filter_name Then Return True
+  Next
+  Return False
+End
 
 
 Private Sub Init_filters_audio()
   Dim filters_audio_list As New String[]
   Dim filter As String
-  filters_audio_list = ["equalizer", "earwax", "scaletempo", "dynaudnorm", "volume"]
-  filters_audio_list.insert(["CustomAudio1", "CustomAudio2", "CustomAudio3", "lavcac3enc"])
+  'filters_audio_list = ["anequalizer", "compand", "acompressor", "earwax", "extrastereo", "scaletempo", "rubberband", "alimiter", "dynaudnorm", "volume", "crystalizer"]
+  filters_audio_list = ["anequalizer", "compand", "acompressor", "superequalizer", "earwax", "extrastereo", "stereowiden", "stereotools", "crystalizer", "aexciter", "scaletempo", "rubberband", "volume"]
+  filters_audio_list.insert(["CustomAudio1", "CustomAudio2", "CustomAudio3", "lavcac3enc", "lavrresample"])
   For Each filter In filters_audio_list
     If filter = "scaletempo" Then 
       draw_list_item(filters_audio_container, filter, True)
@@ -53,11 +81,12 @@ End
 Private Sub Init_filters_video()
   Dim filters_video_list As New String[]
   Dim filter As String
-  filters_video_list = ["vdpaurb", "Yadif", "GradFun", "HqDn3D", "spp", "uspp", "UnSharp", "DeLogo", "Eq", "Scale", "Expand"]
+  filters_video_list = ["Scale", "Yadif", "GradFun", "HqDn3D", "spp", "uspp", "UnSharp", "DeLogo", "Eq", "vflip", "hflip", "rotate", "pad"]
   filters_video_list.Insert(["Stereo3D", "vdpaupp", "vavpp", "CustomVideo1", "CustomVideo2", "CustomVideo3"])
   For Each filter In filters_video_list
     draw_list_item(filters_video_container, filter)
   Next
+
   filters_video_container.tag = TabStrip_filters_video
   fill_tabstrip(TabStrip_filters_video, filters_video_container)
   draw_filters_video_cfg()
@@ -67,7 +96,7 @@ End
 Private Sub Init_drivers_audio()
   Dim drivers_audio_list As New String[]
   Dim driver As String
-  drivers_audio_list = ["alsa", "pulse", "jack", "pcm", "custom audio", "null"]
+  drivers_audio_list = ["alsa", "pulse", "jack", "pcm", "null"]
   For Each driver In drivers_audio_list
     draw_list_item(drivers_audio_container, driver)
   Next
@@ -78,9 +107,13 @@ End
 Private Sub Init_drivers_video()
   Dim drivers_video_list As New String[]
   Dim driver As String
-  drivers_video_list = ["opengl", "xv", "vdpau", "vaapi", "x11", "custom video", "null"]
+  drivers_video_list = ["gpu", "xv", "vdpau", "vaapi", "x11", "null"]
   For Each driver In drivers_video_list
-    draw_list_item(drivers_video_container, driver)
+    If driver = "gpu" Then
+      draw_list_item(drivers_video_container, driver, True)
+        Else
+      draw_list_item(drivers_video_container, driver)
+    Endif
   Next
   tabstrip1.index = tabs.Find("drivers_video")
   drivers_video_container.tag = ConfigureTabs_video
@@ -98,8 +131,8 @@ Dim t As Integer
     filter_button_up = New Button(filter_box) As "filter_button_up"
       filter_button_up.border = False
       filter_button_up.text = ""
-      filter_button_up.w = 16
-      filter_button_up.h = 16
+      filter_button_up.w = 20
+      filter_button_up.h = 20
       filter_button_up.picture = stock["16/up"]
     
     'a button to move the item in the list
@@ -107,8 +140,8 @@ Dim t As Integer
       filter_button_down.border = False
       filter_button_down.picture = stock["16/down"]
       filter_button_down.text = ""
-      filter_button_down.w = 16
-      filter_button_down.h = 16
+      filter_button_down.w = 20
+      filter_button_down.h = 20
 
     'a checkbox to enable/disable the item
     filter_checkbox = New CheckBox(filter_box) As "filter_checkbox"
@@ -120,6 +153,7 @@ Dim t As Integer
       filter_checkbox.autoresize = False
       filter_checkbox.w = t * 3 'hack may not work well with all of the themes.
       filter_checkbox.value = checked
+      filter_checkbox.Foreground = Color.TextForeground
       Object.unLock(filter_checkbox)
       
     'finally the text label; his name holds the item name information
@@ -214,13 +248,41 @@ Private filter_text As Textlabel
 
 Public Sub filter_button_up_click()
   Dim up As Boolean = True
+  Dim obj As Object
+  Dim trig As Boolean = False
+  
+  'See if the filter is enabled and trigger a chain change
+  For Each obj In Last.parent.children
+    If obj Is Checkbox Then
+      If obj.value = CheckBox.true Then trig = True
+    Endif
+  Next
+  
+  'move it  
   chain_item_move(Last.parent, up = True)
+  
+  If trig Then dynaobj_change()
+  
 End
 
 
 Public Sub filter_button_down_click()
   Dim up As Boolean = True
+  Dim obj As Object
+  Dim trig As Boolean = False
+  
+  'See if the filter is enabled and trigger a chain change
+  For Each obj In Last.parent.children
+    If obj Is Checkbox Then
+      If obj.value = CheckBox.true Then trig = True
+    Endif
+  Next
+
+  'move it
   chain_item_move(Last.parent, up = False)
+
+  If trig Then dynaobj_change()
+  
 End
 
 
@@ -229,7 +291,9 @@ Public Sub filter_label_MouseDown()
 End
 
 Public Sub filter_checkbox_Click()
-    select_item(Last)
+  If Not NewChains.visible Then Return
+  select_item(Last)
+  dynaobj_change()
 End
 
 
@@ -240,6 +304,7 @@ End
 
 Private Sub select_item(item As Object)
   Dim bro As Object
+  Dim ovr As String
   If item.parent.parent.enabled Then
     For Each bro In item.parent.parent.Children
       If bro Is HBox Then
@@ -249,9 +314,12 @@ Private Sub select_item(item As Object)
     Next
     item.parent.background = Color.SelectedBackground
     item.parent.foreground = Color.SelectedForeground
+    Select_tabstrip_item(item.parent.name, item.parent.parent.tag)  
   Endif
-  Select_tabstrip_item(item.parent.name, item.parent.parent.tag)
-
+    
+  
+  
+    
   If textareahelp.visible Then
     timerDelayShowHelp.start
   Endif
@@ -272,21 +340,41 @@ Private Sub Select_tabstrip_item(item_name As String, aTabstrip As Tabstrip)
   Dim item_tab As Integer = -1
   Dim i As Integer
   Dim islavfi As Boolean = False
+  Object.Detach(atabstrip) 'we can't use lock because of a gambas bug
+    For i = 0 To atabstrip.count - 1
+      atabstrip[i].enabled = False
+    Next
+  object.Attach(atabstrip, atabstrip.parent, atabstrip.name)
 
-  For i = 0 To atabstrip.count - 1
-    atabstrip[i].enabled = False
-  Next
+
+
 
   Try item_tab = aTabstrip.Tag.Find(Lower(item_name))
 
   If item_tab >= 0 Then 
     aTabstrip.index = item_tab
-    HelpBox.reparent(aTabstrip)
+    If atabstrip.caption <> "anequalizer" Then 
+      If atabstrip.caption <> "superequalizer" Then 
+        If atabstrip.caption <> "compand" Then 
+          If atabstrip.caption <> "acompressor" Then 
+            HelpBox.reparent(aTabstrip)
+          Endif
+        Endif
+      Endif
+    Endif
       Else
     For i = 0 To aTabstrip.count - 1
       aTabstrip.index = i
       If Lower(aTabstrip.caption) = item_name Then 
-        HelpBox.reparent(aTabstrip)
+        If atabstrip.caption <> "anequalizer" Then
+          If atabstrip.caption <> "superequalizer" Then 
+            If atabstrip.caption <> "compand" Then 
+              If atabstrip.caption <> "acompressor" Then 
+                HelpBox.reparent(aTabstrip)
+              Endif
+            Endif
+          Endif
+        Endif
         Goto returnlabel
       Endif
     Next
@@ -310,6 +398,24 @@ Public Sub Init()
   Init_filters_audio()
   Init_filters_video()
   tabstrip1.index = 0
+  f1.value = 50
+  g1.value = 0
+  w1.value = 100
+  f2.value = 250
+  g2.value = 0
+  w2.value = 500
+  f3.value = 1000
+  g3.value = 0
+  w3.value = 1000
+  f4.value = 2500
+  g4.value = 0
+  w4.value = 1000
+  f5.value = 4000
+  g5.value = 0
+  w5.value = 1000
+  f6.value = 8000
+  g6.value = 0
+  w6.value = 1000
   initdone = True
 End
 
@@ -324,85 +430,170 @@ Private Sub draw_filters_audio_cfg()
   ladspacompiledin = FMain.mplayer.supportsladspa()
 
 
-  ' 'extrastereo[=mul]
-  ' AllParams.Add(["TITLE", "- Adds live effect to playback -", "ExtraStereo0", ""])
-  ' AllParams.add(["RANGEFLOAT", ("Amount"), "0", "2.25", "10", "ExtraStereo1", ""])
-  ' Global.DrawGui(AllParams, "extrastereo", aTabstrip, NotSwitchable)
-  ' AllParams.Clear
-
 
   'lavcac3enc
   AllParams.Add(["TITLE", "- Encode audio to AC-3 at runtime -", "lavcac3enc0", ""])
   AllParams.add(["ROCHOOSE", "tospdif=", "yes", "no", "lavcac3enc1", ("Output raw AC-3 stream if no, output to S/PDIF for pass-through if yes (default).")])
   AllParams.add(["ROCHOOSE", "bitrate=", "auto", "96", "128", "192", "224", "320", "448", "512", "640", "lavcac3enc2", ("The bitrate use for the AC-3 stream.")])
   AllParams.add(["ROCHOOSE", "minch=", "3", "2", "3", "4", "5", "6", "lavcac3enc3", ("If the input channel number is less than <minchn>, the filter will detach itself (default: 3).")])
-  Global.DrawGui(AllParams, "lavcac3enc", aTabstrip, switchable)
+  AllParams.Add(["TIP", ("This filter must be the last in the chain"), "lavcac3enc4", ""])
+  Global.DrawGui(AllParams, "lavcac3enc", aTabstrip, switchable,,,, Me)
   AllParams.Clear
   
-  
-  ' 'Karaoke
-  ' AllParams.Add(["TITLE", "- Voice removal filter -", "karaoke0", ""])
-  ' Global.DrawGui(AllParams, "karaoke", aTabstrip, NotSwitchable)
-  ' AllParams.Clear
-
-
-
-  'volume[=<volumedb>[:...]]
-    AllParams.Add(["TITLE", "- Software volume control -", "Volume0", ""])
-    'AllParams.add(["RANGE", "volumedb=", "-200", "0", "60", "Volume1", "db"])
-    AllParams.add(["RANGE", "replaygain-preamp=", "-20", "0", "20", "Volume4", ("Pre-amplification in dB to apply to the replaygain gain")])
-    AllParams.add(["ROCHOOSE", "replaygain-track=", "yes", "no", "Volume2", ("Use track-gain from replaygain metadata value")])
-    AllParams.add(["ROCHOOSE", "replaygain-album=", "yes", "no", "Volume3", ("Like replaygain-track, but using the album-gain value")])
-    AllParams.add(["ROCHOOSE", "replaygain-clip=", "yes", "no", "Volume5", ("Prevent replaygain clipping by lowering the gain")])
-    AllParams.add(["ROCHOOSE", "softclip=", "yes", "no", "Volume6", ("Turns on soft clipping")])
-    Global.DrawGui(AllParams, "volume", aTabstrip, Switchable)
-    AllParams.Clear
     
+  ' volume lavfi
+  AllParams.Add(["TITLE", ("Adjust the input audio volume."), "volume0", ""])
+  AllParams.add(["CHOOSE", "volume=", "-100dB", "-50dB", "-25dB", "-15dB", "-10dB", "-5dB", "-3dB", "0dB", "3dB", "5dB", "10dB", "15dB", "25dB", "50dB", "100dB", "volume1", ("Input Gain in dB")])
+  AllParams.add(["RANGEFLOAT", "volume=", "0", "1", "100", "volume2", ("Input gain multiplier")])
+  'AllParams.add(["ROCHOOSE", "replaygain=", "drop", "ignore", "track", "album", "volume3", ("Choose the behaviour on encountering ReplayGain side data in input frames. ")])
+  'AllParams.add(["RANGEFLOAT", "replaygain_preamp=", "0", "0", "100", "volume4", ("Pre-amplification gain in dB to apply to the selected replaygain gain.")])
+  Global.DrawGui(AllParams, "volume", aTabstrip, switchable, "",, "lavfi", Me)
+  AllParams.Clear
     
-  'volume[=<volumedb>[:...]]
+  'earwax
     AllParams.Add(["TITLE", "- earwax -", "earwax0", ""])
-    Global.DrawGui(AllParams, "earwax", aTabstrip, False, "",, "lavfi")
-    
+    Global.DrawGui(AllParams, "earwax", aTabstrip, NotSwitchable, "",, "lavfi", Me)
     AllParams.Clear
     
   'scaletempo[=option1:option2:...]
   'Syntax for TheParameters is:["SUBLABEL", caption(SubFilterName), TextLabel name ,comment]
-    AllParams.Add(["TITLE", "- Scales audio tempo preserving pitch -", "scaletempo0", ""])
-    AllParams.add(["ROCHOOSE", "speed=", "both", "tempo", "pitch", "none", "scaletempo1", ("Runtime response to speed change")])
-    AllParams.add(["RANGEFLOAT", "scale=", "0.1", "1", "4", "scaletempo5", ""])
+    'AllParams.Add(["TITLE", ("- Scales audio tempo preserving pitch -"), "scaletempo0", ""])
+    AllParams.Add(["TITLE", ("- Scales audio tempo preserving pitch -"), "scaletempo0", ""])
+    'AllParams.add(["ROCHOOSE", "speed=", "both", "tempo", "pitch", "none", "scaletempo1", ("Runtime response to speed change")])
+    'AllParams.add(["RANGEFLOAT", "scale=", "0.1", "1", "4", "scaletempo5", ""])
     AllParams.add(["RANGE", "stride=", "5", "60", "500", "scaletempo2", ""])
     AllParams.add(["RANGEFLOAT", "overlap=", "0.10", "0.20", "1", "scaletempo3", ""])
     AllParams.add(["RANGE", "search=", "1", "14", "100", "scaletempo4", ""])
-    Global.DrawGui(AllParams, "scaletempo", aTabstrip, Switchable)
+    AllParams.Add(["TIP", ("If rubberband and scaletempo are enabled, only rubberband will be used."), "scaletempo5", ""])
+    Global.DrawGui(AllParams, "scaletempo", aTabstrip, switchable,,,, Me)
     AllParams.Clear
     
-
-
-  'Dynaudnorm lavfi
+    
+  'rubberband[=option1:option2:...]
   'Syntax for TheParameters is:["SUBLABEL", caption(SubFilterName), TextLabel name ,comment]
-    AllParams.Add(["TITLE", "- Dynamic Audio Normalizer -", "dynaudnorm0", ""])
-    AllParams.add(["RANGE", "Frame length in msec", "10", "500", "8000", "dynaudnorm1", ""])
-    AllParams.add(["RANGE", "Filter size (odd numbers only!)", "3", "3", "301", "dynaudnorm2", ""])
-    AllParams.add(["RANGEFLOAT", "Peak value", "0.1", "1", "1", "dynaudnorm3", ""])
-    AllParams.add(["RANGE", "Max amplification factor", "1", "10", "100", "dynaudnorm4", ""])
-    AllParams.add(["RANGEFLOAT", "Target RMS", "0", "0", "1", "dynaudnorm5", ""])
-    AllParams.add(["ROCHOOSE", "Enable channel coupling", "1 - enable", "0 - disable", "dynaudnorm6", ""])
-    AllParams.add(["ROCHOOSE", "Enable DC bias correction", "0 - disable", "1 - enable", "dynaudnorm7", ""])
-    AllParams.add(["ROCHOOSE", "Enable alternative boundary mode", "1 - enable", "0 - disable", "dynaudnorm8", ""])
-    AllParams.add(["RANGEFLOAT", "Compress factor", "0", "0", "30", "dynaudnorm9", ""])    
-    AllParams.Add(["TIP", ("It is best to place the volume filter after dynaudnorm"), "dynaudnorm110", ""])
-    Global.DrawGui(AllParams, "dynaudnorm", aTabstrip, False,,, "lavfi")
+    'AllParams.Add(["TITLE", ("- Scales audio tempo preserving pitch -"), "scaletempo0", ""])
+    AllParams.Add(["TITLE", ("- Alter audio pitch -"), "rubberband0", ""])
+    AllParams.Add(["CHOOSE", ("pitch-scale="), "0.5 #-12", "0.529731547179648 #-11", "0.561231024154687 #-10", "0.594603557501361 #-9", "0.629960524947437 #-8", "0.667419927085017 #-7", "0.707106781186548 #-6", "0.749153538438341 #-5", "0.7937005259841 #-4", "0.840896415253715 #3-", "0.890898718140339 #-2", "0.943874312681693 #-1", "1 #0", "1.05946309435295 #+1", "1.12246204829593 #+2", "1.18920711498136 #+3", "1.2599210498647 #+4", "1.33483985413008 #+5", "1.4142135623223 #+6", "1.4983070768139 #+7", "1.58740105189218 #+8", "1.68179283041682 #+9", "1.78179743617402#+10", "1.88774862523908 #+11", "2 #+12", "rubberband9", ("Set playback tempo/pitch")])
+    AllParams.add(["CHOOSE", ("transients="), "mixed", "crisp", "smooth", "rubberband1", ("")])
+    AllParams.add(["CHOOSE", ("detector="), "compound", "percussive", "soft", "rubberband2", ("")])
+    AllParams.add(["CHOOSE", ("phase="), "laminar", "independent", "rubberband3", ("")])
+    AllParams.add(["CHOOSE", ("window="), "standard", "short", "long", "rubberband4", ("")])
+    AllParams.add(["CHOOSE", ("smoothing="), "off", "on", "rubberband5", ("")])
+    AllParams.add(["CHOOSE", ("formant="), "preserved", "shifted", "rubberband6", ("")])
+    AllParams.add(["CHOOSE", ("pitch="), "consistency", "quality", "speed", "rubberband7", ("")])
+    AllParams.add(["CHOOSE", ("channels="), "together", "apart", "rubberband8", ("")])
+    AllParams.Add(["TIP", ("If rubberband and scaletempo are enabled, only rubberband will be used."), "rubberband9", ""])
+    Global.DrawGui(AllParams, "rubberband", aTabstrip, switchable,,,, Me)
     AllParams.Clear
-    'or 50 11 1 5  0 0 0 0 0
+    
+  'extrastereo lavfi
+  AllParams.Add(["TITLE", ("- Adds live effect to playback"), "ExtraStereo0", ""])
+  AllParams.add(["RANGEFLOAT", ("Amount"), "-1", "2.25", "10", "ExtraStereo1", ("Sets the intensity of effect. To swap channels use negative value.")])
+  AllParams.add(["CHOOSE", ("Clipping"), "true", "false", "ExtraStereo2", ("Enable or disable clipping.")])
+  Global.DrawGui(AllParams, "extrastereo", aTabstrip, NotSwitchable,,, "lavfi", Me)
+  AllParams.Clear
 
-    AllParams.Add(["TITLE", "- Custom video filters - ", "ACustom000", ""])
+  'crystalizer lavfi
+  'Syntax for TheParameters is:["SUBLABEL", caption(SubFilterName), TextLabel name ,comment]
+    AllParams.Add(["TITLE", ("- Simple algorithm for audio noise sharpening.  -"), "crystalizer0", ""])
+    AllParams.add(["RANGEFLOAT", ("Intensity"), "-10", "1.5", "10", "crystalizer1", ("Sets the intensity of effect. To inverse filtering use negative value.")])
+    AllParams.add(["CHOOSE", ("Clipping"), "true", "false", "crystalizer2", ("Enable or disable clipping.")])
+    Global.DrawGui(AllParams, "crystalizer", aTabstrip, NotSwitchable,,, "lavfi", Me)
+    AllParams.Clear
+
+  'exciter lavfi
+  'Syntax for TheParameters is:["SUBLABEL", caption(SubFilterName), TextLabel name ,comment]
+    AllParams.Add(["TITLE", ("- Add high pitched harmonics. -"), "aexciter0", ""])
+    AllParams.add(["RANGE", ("amount="), "0", "1", "64", "aexciter1", ("Set the amount of harmonics added to original signal")])
+    AllParams.add(["RANGEFLOAT", ("drive="), "0.1", "8.5", "10", "aexciter2", ("Set the amount of newly created harmonics")])
+    AllParams.add(["RANGE", ("blend="), "-10", "0", "10", "aexciter3", ("Set the octave of newly created harmonics")])
+    AllParams.add(["RANGE", ("freq="), "2000", "7500", "12000", "aexciter4", ("Set the lower frequency limit of producing harmonics in Hz. ")])
+    AllParams.add(["RANGE", ("ceil="), "9999", "9999", "20000", "aexciter5", ("Set the lower frequency limit of producing harmonics in Hz. ")])
+    AllParams.add(["CHOOSE", ("listen="), "false", "true", "aexciter6", ("Only listen to armonics.")])
+    Global.DrawGui(AllParams, "aexciter", aTabstrip, Switchable,,, "lavfi", Me)
+    AllParams.Clear
+
+  ' 'stereowiden lavfi
+  ' 'Syntax for TheParameters is:["SUBLABEL", caption(SubFilterName), TextLabel name ,comment]
+    AllParams.Add(["TITLE", ("- Enhance the stereo effect. -"), "stereowiden0", ""])
+    AllParams.add(["RANGE", ("delay="), "0", "20", "100", "stereowiden1", ("Time in milliseconds of the delay of left signal into right and vice versa")])
+    AllParams.add(["RANGEFLOAT", ("feedback="), "0.0", "0.3", "0.9", "stereowiden2", ("Amount of gain in delayed signal into right and vice versa. ")])
+    AllParams.add(["RANGEFLOAT", ("crossfeed="), "0.0", "0.3", "0.8", "stereowiden3", ("Cross feed of left into right with inverted phase. This helps in suppressing the mono.")])
+    AllParams.add(["RANGEFLOAT", ("drymix="), "0.0", "0.8", "1.0", "stereowiden4", ("Set level of input signal of original channel.")])
+    Global.DrawGui(AllParams, "stereowiden", aTabstrip, Switchable,,, "lavfi", Me)
+    AllParams.Clear
+
+  ' 'stereotools lavfi
+  ' 'Syntax for TheParameters is:["SUBLABEL", caption(SubFilterName), TextLabel name ,comment]
+    AllParams.Add(["TITLE", ("- Handy utilities to manage stereo signals. -"), "stereotools0", ""])
+    AllParams.add(["RANGEFLOAT", ("balance_in="), "-1.0", "0.0", "1.0", "stereotools1", ("Set input balance between both channels.")])
+    AllParams.add(["RANGEFLOAT", ("balance_out="), "-1.0", "0.0", "1.0", "stereotools2", ("Set output balance between both channels.")])
+    AllParams.add(["CHOOSE", ("softclip="), "true", "false", "stereotools3", ("Results in analog distortion instead of harsh digital 0dB clipping.")])
+    AllParams.add(["CHOOSE", ("mutel="), "true", "false", "stereotools4", ("Mute the left channel.")])
+    AllParams.add(["CHOOSE", ("muter="), "true", "false", "stereotools5", ("Mute the right channel.")])
+    AllParams.add(["CHOOSE", ("phasel="), "true", "false", "stereotools6", ("Change the phase of the left channel.")])
+    AllParams.add(["CHOOSE", ("phaser="), "true", "false", "stereotools7", ("Change the phase of the right channel.")])
+    AllParams.add(["RANGE", ("phase="), "0", "180", "360", "stereotools8", ("Set the stereo phase in degrees.")])
+    
+    'AllParams.add(["CHOOSE", ("mode="), "lr>lr  - Left/Right to Left/Right", "lr>ms  - Left/Right to Mid/Side", "ms>lr  - Mid/Side to Left/Right", "lr>ll  - Left/Right to Left/Left", "lr>rr  - Left/Right to Right/Right", "lr>l+r - Left/Right to Left + Right", "lr>rl  - Left/Right to Right/Left", "ms>ll  - Mid/Side to Left/Left", "ms>rr  - Mid/Side to Right/Right", "ms>rl  - Mid/Side to Right/Left", "lr>l-r - Left/Right to Left - Right", "stereotools9", ("Change the phase of the left channel.")])
+    AllParams.add(["CHOOSE", ("mode="), "'lr>lr'  - Left/Right to Left/Right", "'lr>ms'  - Left/Right to Mid/Side", "'ms>lr'  - Mid/Side to Left/Right", "'lr>ll'  - Left/Right to Left/Left", "'lr>rr'  - Left/Right to Right/Right", "'lr>l+r' - Left/Right to Left + Right", "'lr>rl'  - Left/Right to Right/Left", "'ms>ll'  - Mid/Side to Left/Left", "'ms>rr'  - Mid/Side to Right/Right", "'ms>rl'  - Mid/Side to Right/Left", "'lr>l-r' - Left/Right to Left - Right", "stereotools9", ("Change the phase of the left channel.")])
+    AllParams.add(["RANGEFLOAT", ("slev="), "0.015625", "1.0", "64.0", "stereotools10", ("Set level of side signal.")])
+    AllParams.add(["RANGEFLOAT", ("mlev="), "0.015625", "1.0", "64.0", "stereotools11", ("Set level of middle signal.")])
+    AllParams.add(["RANGEFLOAT", ("sbal="), "-1.0", "0.0", "1.0", "stereotools12", ("Set balance of side signal.")])
+    AllParams.add(["RANGEFLOAT", ("mpan="), "-1.0", "0.0", "1.0", "stereotools13", ("Set panning of middle signal.")])
+    AllParams.add(["RANGEFLOAT", ("base="), "-1.0", "0.0", "1.0", "stereotools14", ("Set stereo base between mono and inversed channels.")])
+    AllParams.add(["RANGE", ("delay="), "-20", "0", "20", "stereotools15", ("Time in milliseconds of the delay of left signal into right and vice versa.")])
+    AllParams.add(["RANGE", ("sclevel="), "1", "50", "100", "stereotools16", ("Set S/C level.")])
+    Global.DrawGui(AllParams, "stereotools", aTabstrip, Switchable,,, "lavfi", Me)
+    AllParams.Clear
+
+
+  ' ' 'alimiter lavfi
+  ' AllParams.Add(["TITLE", ("Keep input signal under a desired threshold"), "alimiter0", ""])
+  ' AllParams.add(["RANGEFLOAT", "Input gain", "0.1", "5", "64", "alimiter1", ""])
+  ' AllParams.add(["RANGEFLOAT", "output gain", "0.1", "1", "64", "alimiter2", ""])
+  ' AllParams.add(["RANGEFLOAT", "limit", "0.1", "1", "1", "alimiter3", ""]) 
+  ' AllParams.add(["RANGE", "attack", "1", "5", "80", "alimiter4", ""]) 
+  ' AllParams.add(["RANGE", "release", "1", "2000", "8000", "alimiter5", ""]) 
+  ' AllParams.add(["RANGE", "asc", "0", "1", "1", "alimiter6", ("Keep asc =1 active to avoid distortions on systems with more than 2 speakers")]) 
+  ' AllParams.add(["RANGEFLOAT", "asc_level", "0", "1", "1", "alimiter7", ""]) 
+  ' AllParams.Add(["TIP", ("This filter is a good volume normalizer"), "alimiter6", ""])
+  ' Global.DrawGui(AllParams, "alimiter", aTabstrip, False,,, "lavfi", Me)
+  ' AllParams.Clear
+
+  ' lavrresample
+  AllParams.Add(["TITLE", ("Audio resampler: set the default audio resampler quality"), "lavrresample0", ""])
+  AllParams.add(["RANGE", "phase-shift=", "4", "10", "20", "lavrresample1", "Higher=slower and better quality"]) 
+  AllParams.add(["ROCHOOSE", "linear=", "yes", "no", "lavrresample2", "filter linear interpolation"])
+  AllParams.Add(["TIP", ("Put this filter at the end of the chain, but before lavcac3enc (if enabled)"), "lavrresample3", ""])
+  Global.DrawGui(AllParams, "lavrresample", aTabstrip, switchable,,, "", Me)
+  AllParams.Clear
+
+
+  ' 'Dynaudnorm lavfi
+  ' 'Syntax for TheParameters is:["SUBLABEL", caption(SubFilterName), TextLabel name ,comment]
+  '   AllParams.Add(["TITLE", ("- Dynamic Audio Normalizer -"), "dynaudnorm0", ""])
+  '   AllParams.add(["RANGE", "Frame length in msec", "10", "500", "8000", "dynaudnorm1", ""])
+  '   AllParams.add(["RANGE", "Filter size (odd numbers only!)", "3", "3", "301", "dynaudnorm2", ""])
+  '   AllParams.add(["RANGEFLOAT", "Peak value", "0.1", "1", "1", "dynaudnorm3", ""])
+  '   AllParams.add(["RANGE", "Max amplification factor", "1", "10", "100", "dynaudnorm4", ""])
+  '   AllParams.add(["RANGEFLOAT", "Target RMS", "0", "0", "1", "dynaudnorm5", ""])
+  '   AllParams.add(["ROCHOOSE", "Enable channel coupling", "1 - enable", "0 - disable", "dynaudnorm6", ""])
+  '   AllParams.add(["ROCHOOSE", "Enable DC bias correction", "0 - disable", "1 - enable", "dynaudnorm7", ""])
+  '   AllParams.add(["ROCHOOSE", "Enable alternative boundary mode", "1 - enable", "0 - disable", "dynaudnorm8", ""])
+  '   AllParams.add(["RANGEFLOAT", "Compress factor", "0", "0", "30", "dynaudnorm9", ""])    
+  '   Global.DrawGui(AllParams, "dynaudnorm", aTabstrip, False,,, "lavfi", Me)
+  '   AllParams.Clear
+
+
+    AllParams.Add(["TITLE", ("- Custom audio filters - "), "ACustom000", ""])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom11", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom12", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom13", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom14", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom15", ("E.g.:resample=44100:1:2,hrtf=s")])
     If ladspacompiledin Then
-      Global.DrawGui(AllParams, "CustomAudio1", aTabstrip, Switchable,, ButtonLadspaHelper)
+      Global.DrawGui(AllParams, "CustomAudio1", aTabstrip, Switchable,, ButtonLadspaHelper,, Me)
         Else
       Print "WARNING:----------------------------------------------"
       Print "        Your ffmpeg has not been compiled with ladspa support"
@@ -411,33 +602,33 @@ Private Sub draw_filters_audio_cfg()
       Print "        Recompile ffmpeg with ladspa support or ask your"
       Print "        distribution mantainers to do that."
       Print ""
-      Global.DrawGui(AllParams, "CustomAudio1", aTabstrip, Switchable)
+      Global.DrawGui(AllParams, "CustomAudio1", aTabstrip, switchable,,,, Me)
       
     Endif
     AllParams.Clear
-    AllParams.Add(["TITLE", "- Custom video filters - ", "ACustom001", ""])
+    AllParams.Add(["TITLE", ("- Custom audio filters - "), "ACustom001", ""])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom21", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom22", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom23", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom24", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom25", ("E.g.:resample=44100:1:2,hrtf=s")])
     If ladspacompiledin Then
-      Global.DrawGui(AllParams, "CustomAudio2", aTabstrip, Switchable,, ButtonLadspaHelper)
+      Global.DrawGui(AllParams, "CustomAudio2", aTabstrip, Switchable,, ButtonLadspaHelper,, Me)
         Else
-      Global.DrawGui(AllParams, "CustomAudio2", aTabstrip, Switchable)
+      Global.DrawGui(AllParams, "CustomAudio2", aTabstrip, switchable,,,, Me)
     Endif
     AllParams.Clear
     
-    AllParams.Add(["TITLE", "- Custom video filters - ", "ACustom002", ""])
+    AllParams.Add(["TITLE", ("- Custom audio filters - "), "ACustom002", ""])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom26", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom27", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom28", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom29", ("E.g.:resample=44100:1:2,hrtf=s")])
     AllParams.Add(["FREE", ("Custom audio filter(s):"), "", "ACustom30", ("E.g.:resample=44100:1:2,hrtf=s")])
     If ladspacompiledin Then
-      Global.DrawGui(AllParams, "CustomAudio3", aTabstrip, Switchable,, ButtonLadspaHelper)
+      Global.DrawGui(AllParams, "CustomAudio3", aTabstrip, Switchable,, ButtonLadspaHelper,, Me)
         Else
-      Global.DrawGui(AllParams, "CustomAudio3", aTabstrip, Switchable)
+      Global.DrawGui(AllParams, "CustomAudio3", aTabstrip, switchable,,,, Me)
     Endif
 
     AllParams.clear
@@ -466,139 +657,164 @@ Private Sub draw_filters_video_cfg()
   Dim NotSwitchable As Boolean = False
   Dim Switchable As Boolean = True
   Dim aTabstrip As Tabstrip = TabStrip_filters_video
+  Dim t As Object
   
   AllParams.Clear
   
-  AllParams.Add(["TITLE", "- Allow filters with vdpau hwrdware decoding -", "vdpaurb0", ""])
-  AllParams.Add(["TIP", ("Place this filter before any other (on top)"), "vdpaurb1", ""])
-  Global.DrawGui(AllParams, "vdpaurb", aTabstrip, NotSwitchable)
-  AllParams.Clear
+  ' AllParams.Add(["TITLE", "- Allow filters with vdpau hwrdware decoding -", "vdpaurb0", ""])
+  ' AllParams.Add(["TIP", ("Place this filter before any other (on top)"), "vdpaurb1", ""])
+  ' Global.DrawGui(AllParams, "vdpaurb", aTabstrip, NotSwitchable,,,, Me)
+  ' AllParams.Clear
+  
+  ' ' unsharp[=l|cWxH:amount[:l|cWxH:amount]]
+  ' AllParams.Add(["TITLE", ("- Sharpen or blur the input video -"), "Sharp0", ""])
+  ' AllParams.add(["CHOOSE", ("Luminance Matrix"), "3:3", "5:5", "7:7", "9:9", "11:11", "13:13", "15:15", "Sharp1", ("The higher, the slower")])
+  ' AllParams.add(["RANGEFLOAT", ("Luma amount"), "-2", "0", "5", "Sharp2", ("Negative means blur")])
+  ' AllParams.add(["CHOOSE", ("Chrominance Matrix"), "3:3", "5:5", "7:7", "9:9", "11:11", "13:13", "15:15", "Sharp3", ("The higher, the slower")])
+  ' AllParams.add(["RANGEFLOAT", ("Chroma amount"), "-2", "0", "5", "Sharp4", ("Negative means blur")])
+  ' AllParams.add(["ROCHOOSE", "Enable opencl", "0 - disable", "1 - enable", "Sharp5", ("Needs ffmpeg compiled with opencl support")])
+  ' Global.DrawGui(AllParams, "unsharp", aTabstrip, NotSwitchable, "",, "lavfi", Me)
+  ' AllParams.Clear
   
   ' unsharp[=l|cWxH:amount[:l|cWxH:amount]]
-  AllParams.Add(["TITLE", "- Sharpen or blur the input video -", "Sharp0", ""])
-  AllParams.add(["CHOOSE", ("Luminance Matrix"), "3:3", "5:5", "7:7", "9:9", "11:11", "13:13", "15:15", "Sharp1", ("The higher, the slower")])
-  AllParams.add(["RANGEFLOAT", ("Luma amount"), "-2", "0", "5", "Sharp2", ("Negative means blur")])
-  AllParams.add(["CHOOSE", ("Chrominance Matrix"), "3:3", "5:5", "7:7", "9:9", "11:11", "13:13", "15:15", "Sharp3", ("The higher, the slower")])
-  AllParams.add(["RANGEFLOAT", ("Chroma amount"), "-2", "0", "5", "Sharp4", ("Negative means blur")])
-  AllParams.add(["ROCHOOSE", "Enable opencl", "0 - disable", "1 - enable", "Sharp5", ("Needs ffmpeg compiled with opencl support")])
-  Global.DrawGui(AllParams, "unsharp", aTabstrip, NotSwitchable, "",, "lavfi")
-  AllParams.Clear
+  AllParams.Add(["TITLE", ("- Sharpen or blur the input video -"), "Sharp0", ""])
   
-  'expand[ = w: h: x: y: o: a: r]
-  AllParams.Add(["TITLE", "- Expands (not scales) video resolution -", "Expand0", ""])
-  AllParams.add(["RANGE", ("Width"), "-2048", "0", "2048", "Expand1", ("0 to Disable; Negative as offset to original value")])
-  AllParams.add(["RANGE", ("Height"), "-2048", "0", "2048", "Expand2", ("0 to Disable; Negative as offset to original value")])
-  AllParams.add(["RANGE", ("X Position"), "-1", "-1", "2048", "Expand3", ("Original image position; -1 to center")])
-  AllParams.add(["RANGE", ("Y Position"), "-1", "-1", "2048", "Expand4", ("Original image position; -1 to center")])
-  AllParams.add(["CHOOSE", ("Fit an aspect instead of a resolution"), "", "4/3", "3/2", "16/9", "16/10", "1.85/1", "2.35/1", "2.39/1", "Expand6", ""])
-  AllParams.add(["RANGE", ("Make Width and Height divisible by"), "1", "1", "64", "Expand7", ""])
-  Global.DrawGui(AllParams, "expand", aTabstrip, NotSwitchable,,, "lavfi")
+  AllParams.add(["CHOOSE", ("luma_msize_x="), "5", "3", "5", "7", "9", "11", "13", "15", "17", "29", "21", "23", "sharp001", ("luma matrix x")])
+  AllParams.add(["CHOOSE", ("luma_msize_y="), "5", "3", "5", "7", "9", "11", "13", "15", "17", "29", "21", "23", "sharp002", ("luma matrix y")])
+  AllParams.add(["CHOOSE", ("chroma_msize_x="), "5", "3", "5", "7", "9", "11", "13", "15", "17", "29", "21", "23", "sharp003", ("chroma matrix y")])
+  AllParams.add(["CHOOSE", ("chroma_msize_y="), "5", "3", "5", "7", "9", "11", "13", "15", "17", "29", "21", "23", "sharp004", ("chroma matrix y")])
+  AllParams.add(["CHOOSE", ("alpha_msize_x="), "5", "3", "5", "7", "9", "11", "13", "15", "17", "29", "21", "23", "sharp005", ("alpha matrix y")])
+  AllParams.add(["CHOOSE", ("alpha_msize_y="), "5", "3", "5", "7", "9", "11", "13", "15", "17", "29", "21", "23", "sharp006", ("alpha matrix y")])
+    
+  AllParams.add(["RANGEFLOAT", ("luma_amount="), "-3.0", "1", "3.0", "sharp007", ("luma effect strength, negative will blur")])
+  AllParams.add(["RANGEFLOAT", ("chroma_amount="), "-3.0", "0", "3.0", "sharp008", ("chroma effect strength, negative will blur")])
+  AllParams.add(["RANGEFLOAT", ("alpha_amount="), "-3.0", "0", "3.0", "sharp009", ("alpha effect strength, negative will blur")])
+  
+  Global.DrawGui(AllParams, "unsharp", aTabstrip, Switchable, "",, "lavfi", Me)
   AllParams.Clear
+
+  AllParams.Add(["TITLE", ("- Add paddings to the input image -"), "pad0", ""])
+  AllParams.add(["RANGE", ("width="), "0", "0", "8192", "pad1", ("0 to Disable; Width of the output image with the paddings added.")])
+  AllParams.add(["RANGE", ("height="), "0", "0", "8192", "pad2", ("0 to Disable; height of the output image with the paddings added.")])
+  AllParams.add(["RANGE", ("x="), "-1", "-1", "8192", "pad3", ("Original image position; -1 to center")])
+  AllParams.add(["RANGE", ("y="), "-1", "-1", "8192", "pad4", ("Original image position; -1 to center")])
+  AllParams.add(["CHOOSE", ("color="), "", "black", "white", "gray", "green", "red", "blue", "pad5", ("Use named colors or #rrggbb notation")])
+  AllParams.add(["CHOOSE", ("aspect="), "", "4/3", "3/2", "16/9", "16/10", "1.85/1", "2.35/1", "2.39/1", "pad6", ("Pad to aspect instead to a resolution. ")])
+  Global.DrawGui(AllParams, "pad", aTabstrip, Switchable,,, "lavfi", Me)
+  AllParams.Clear  
   
    
   'hqdn3d[ = luma_spatial: chroma_spatial: luma_tmp: chroma_tmp]
-  AllParams.Add(["TITLE", "- High Quality 3D Denoiser -", "HqDn3D0", ""])
+  AllParams.Add(["TITLE", ("- High Quality 3D Denoiser -"), "HqDn3D0", ""])
   AllParams.Add(["RANGE", ("Spatial luma strength"), "0", "4", "200", "HqDn3D1", ""])
   AllParams.Add(["RANGE", ("Spatial chroma strength"), "0", "3", "200", "HqDn3D2", ""])
   AllParams.Add(["RANGE", ("Temporal luma strength"), "0", "6", "200", "HqDn3D3", ""])
   AllParams.Add(["RANGE", ("Temporal chroma strength"), "0", "4", "200", "HqDn3D4", ""])
-  Global.DrawGui(AllParams, "hqdn3d", aTabstrip, notswitchable,,, "lavfi")
+  Global.DrawGui(AllParams, "hqdn3d", aTabstrip, notswitchable,,, "lavfi", Me)
   AllParams.Clear
+
   
-  'scale[=w:h[:ilaced[:chr_drop[:par[:par2[:presize[:noup[:arnd]]]]]]]]
-  AllParams.Add(["TITLE", "- Software scaler -", "Scale0", ""])
-  AllParams.Add(["RANGE", ("Width"), "-11", "0", "2048", "Scale1", ("0 disables scaling,see man below")])
-  AllParams.Add(["RANGE", ("Height"), "-11", "0", "2048", "Scale2", ("0 disables scaling,see man below")])
-  AllParams.Add(["FREE", ("Scaling Parameters"), "", "Scale5", ("Depends on sws, leave blank if unsure")])
-  AllParams.Add(["FREE", ("Scaling Parameters"), "", "Scale6", ("Depends on sws, leave blank if unsure")])
-  AllParams.Add(["ROCHOOSE", ("Chroma skipping"), ("0 - Use all available input lines for chroma"), ("1 - Use only every 2. input line for chroma"), ("2 - Use only every 4. input line for chroma"), ("3 - Use only every 8. input line for chroma"), "Scale4", ("lower=slower")])
-  AllParams.Add(["ROCHOOSE", ("Disable Upscaling"), ("0 - Allow Upscaling"), ("1 - Disallow if one dimensions exceeds its original value"), ("2 - Disallow if both dimensions exceed their original values"), "scale8", ""])
-  AllParams.Add(["ROCHOOSE", ("Accurate Rounding"), ("no - Disable Accurate rounding"), ("yes - Enable Accurate rounding"), "scale9", ""])
-  Global.DrawGui(AllParams, "scale", aTabstrip, NotSwitchable)
+  'vflip
+  AllParams.Add(["TITLE", ("- Vertical flip -"), "vflip0", ""])
+  Global.DrawGui(AllParams, "vflip", aTabstrip, NotSwitchable, "",, "lavfi", Me)
+  AllParams.Clear
+
+  'hflip
+  AllParams.Add(["TITLE", ("- Horizontal flip -"), "hflip0", ""])
+  Global.DrawGui(AllParams, "hflip", aTabstrip, NotSwitchable, "",, "lavfi", Me)
+  AllParams.Clear
+
+  'rotate
+  AllParams.Add(["TITLE", ("- Rotate video -"), "rotate0", ""])
+  AllParams.Add(["CHOOSE", ("Angle"), "90*PI/180", "180*PI/180", "270*PI/180", "rotate1", ("lower=slower")])
+  Global.DrawGui(AllParams, "rotate", aTabstrip, NotSwitchable, "",, "lavfi", Me)
   AllParams.Clear
   
   'delogo[=x:y:w:h:t]
-  AllParams.Add(["TITLE", "- Remove logo from input video -", "Delogo0", ""])
-  AllParams.Add(["RANGE", "X", "0", "0", "2048", "Delogo1", ("TopLeft Corner")])
-  AllParams.Add(["RANGE", "Y", "0", "0", "2048", "Delogo2", ("TopLeft Corner")])
-  AllParams.Add(["RANGE", ("Width"), "0", "50", "2048", "Delogo3", ""])
-  AllParams.Add(["RANGE", ("Height"), "0", "50", "2048", "Delogo4", ""])
-  AllParams.Add(["RANGE", ("Tickness"), "1", "4", "2048", "Delogo5", ""])
-  AllParams.add(["ROCHOOSE", "Show borders", "0 - disable", "1 - enable", "Delogo5", ("Draw rectangle borders")])
-  Global.DrawGui(AllParams, "delogo", aTabstrip, NotSwitchable,,, "lavfi")
+  AllParams.Add(["TITLE", ("- Remove logo from input video -"), "Delogo0", ""])
+  AllParams.Add(["TIP", ("Make sure you specify and enable at least x,y,w and h"), "Delogo999149", ""])
+  AllParams.Add(["RANGE", "x=", "1", "1", "2048", "Delogo1", ("TopLeft Corner")])
+  AllParams.Add(["RANGE", "y=", "1", "1", "2048", "Delogo2", ("TopLeft Corner")])
+  AllParams.Add(["RANGE", "w=", "0", "50", "2048", "Delogo3", ("Box width")])
+  AllParams.Add(["RANGE", "h=", "0", "50", "2048", "Delogo4", ("Box height")])
+  AllParams.Add(["RANGE", "band=", "1", "4", "2048", "Delogo5", ("Thickness of the fuzzy edge")])
+  AllParams.add(["ROCHOOSE", "show=", "0 - disable", "1 - enable", "Delogo5", ("Draw box borders")])
+  Global.DrawGui(AllParams, "delogo", aTabstrip, Switchable,,, "lavfi", Me)
   AllParams.Clear
 
   'spp[
-  AllParams.Add(["TITLE", "- Simple postprocessing filter -", "spp0", ""])
+  AllParams.Add(["TITLE", ("- Simple postprocessing filter -"), "spp0", ""])
   AllParams.Add(["RANGE", "quality=", "0", "3", "6", "spp1", ("Set quality. This option defines the number of levels for averaging")])
   AllParams.Add(["RANGE", "qp=", "0", "0", "63", "spp2", ("Force a constant quantization parameter.")])
   AllParams.add(["ROCHOOSE", "mode=", "0 - hard", "1 - soft", "spp3", ("Thresholding mode,soft is blurrer but derings better")])
-  Global.DrawGui(AllParams, "spp", aTabstrip, Switchable,,, "lavfi")
+  Global.DrawGui(AllParams, "spp", aTabstrip, Switchable,,, "lavfi", Me)
   AllParams.Clear
   
   'uspp
-  AllParams.Add(["TITLE", "- Ultra slow/simple postprocessing filter -", "uspp0", ""])
+  AllParams.Add(["TITLE", ("- Ultra slow/simple postprocessing filter -"), "uspp0", ""])
   AllParams.Add(["RANGE", "quality=", "0", "3", "8", "uspp1", ("Set quality. This option defines the number of levels for averaging")])
   AllParams.Add(["RANGE", "qp=", "0", "0", "63", "uspp2", ("Force a constant quantization parameter.")])
-  Global.DrawGui(AllParams, "uspp", aTabstrip, Switchable,,, "lavfi")
+  Global.DrawGui(AllParams, "uspp", aTabstrip, Switchable,,, "lavfi", Me)
   AllParams.Clear
 
-  AllParams.Add(["TITLE", "- Custom video filters - ", "vcustom001", ""])
+  AllParams.Add(["TITLE", ("- Custom video filters - "), "vcustom001", ""])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom11", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom12", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom13", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom14", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom15", ("E.g.:mirror,smartblur=0.4:0.5:10")])
-  Global.DrawGui(AllParams, "CustomVideo1", aTabstrip, Switchable)
+  Global.DrawGui(AllParams, "CustomVideo1", aTabstrip, switchable,,,, Me)
   AllParams.Clear
 
-  AllParams.Add(["TITLE", "- Custom video filters - ", "vcustom002", ""])
+  AllParams.Add(["TITLE", ("- Custom video filters - "), "vcustom002", ""])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom21", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom22", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom23", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom24", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom25", ("E.g.:mirror,smartblur=0.4:0.5:10")])
-  Global.DrawGui(AllParams, "CustomVideo2", aTabstrip, Switchable)
+  Global.DrawGui(AllParams, "CustomVideo2", aTabstrip, switchable,,,, Me)
   AllParams.Clear
 
-  AllParams.Add(["TITLE", "- Custom video filters - ", "vcustom003", ""])
+  AllParams.Add(["TITLE", ("- Custom video filters - "), "vcustom003", ""])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom26", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom27", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom28", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom29", ("E.g.:mirror,smartblur=0.4:0.5:10")])
   AllParams.Add(["FREE", ("Custom video filter(s):"), "", "VCustom30", ("E.g.:mirror,smartblur=0.4:0.5:10")])
-  Global.DrawGui(AllParams, "CustomVideo3", aTabstrip, Switchable)
+  Global.DrawGui(AllParams, "CustomVideo3", aTabstrip, switchable,,,, Me)
   AllParams.Clear
       
-  'eq2[=gamma:contrast:brightness:saturation:rg:gg:bg:weight]
-  AllParams.Add(["TITLE", "- Software equalizer -", "Eq0", ""])
-  AllParams.add(["RANGEFLOAT", ("Gamma"), "0.1", "1.0", "10", "Eq1", ("Initial gamma value(default: 1.0)")])
-  AllParams.add(["RANGEFLOAT", ("Contrast"), "-2.0", "1.0", "2", "Eq2", ("Initial contrast (-x = negative image)")])
-  AllParams.add(["RANGEFLOAT", ("Brightness"), "-1", "0", "1", "Eq3", ("Initial brightness (default: 0.0)")])
-  AllParams.add(["RANGEFLOAT", ("Saturation"), "0", "1.0", "3", "Eq4", ("Initial Saturation (default: 0.0)")])
-  AllParams.add(["RANGEFLOAT", ("Gamma Red"), "0.1", "1.0", "10", "Eq5", ("gamma for the red component (default: 1.0)")])
-  AllParams.add(["RANGEFLOAT", ("Gamma Green"), "0.1", "1.0", "10", "Eq6", ("gamma for the green component (default: 1.0)")])
-  AllParams.add(["RANGEFLOAT", ("Gamma Blue"), "0.1", "1.0", "10", "Eq7", ("gamma for the blue component (default: 1.0)")])
-  AllParams.add(["RANGEFLOAT", ("Weight"), "0", "1.0", "1", "Eq8", ("Reduce effect of gamma correction")])
-  Global.DrawGui(AllParams, "eq", aTabstrip, NotSwitchable)
+  'eq lavfi
+  AllParams.Add(["TITLE", ("- Software equalizer -"), "Eq0", ""])
+  AllParams.add(["RANGEFLOAT", "contrast=", "-2.0", "1.0", "2", "Eq2", ("Initial contrast (-x = negative image)")])
+  AllParams.add(["RANGEFLOAT", "brightness=", "-1", "0", "1", "Eq3", ("Initial brightness (default: 0.0)")])
+  AllParams.add(["RANGEFLOAT", "saturation=", "0", "1.0", "3", "Eq4", ("Initial Saturation (default: 0.0)")])
+  AllParams.add(["RANGEFLOAT", "gamma=", "0.1", "1.0", "10", "Eq1", ("Initial gamma value(default: 1.0)")])  
+
+  AllParams.add(["RANGEFLOAT", "gamma_r=", "0.1", "1.0", "10", "Eq5", ("gamma for the red component (default: 1.0)")])
+  AllParams.add(["RANGEFLOAT", "gamma_g=", "0.1", "1.0", "10", "Eq6", ("gamma for the green component (default: 1.0)")])
+  AllParams.add(["RANGEFLOAT", "gamma_b=", "0.1", "1.0", "10", "Eq7", ("gamma for the blue component (default: 1.0)")])
+  AllParams.add(["RANGEFLOAT", "gamma_weight=", "0", "1.0", "1", "Eq8", ("Reduce effect of gamma correction")])
+  Global.DrawGui(AllParams, "eq", aTabstrip, Switchable,,, "lavfi", Me)
   AllParams.Clear
 
 
  'gradfun[=strength[:radius]]
-  AllParams.Add(["TITLE", "- Debands video quickly using gradients. -", "gradfun0", ""])
+  AllParams.Add(["TITLE", ("- Debands video quickly using gradients. -"), "gradfun0", ""])
   AllParams.Add(["RANGEFLOAT", ("Strength"), "0.51", "1.5", "64", "gradfun1", ("Maximum amount by which the filter will change any one pixel.  Also the threshold for detecting nearly flat regions (default: 1.2).")])
-  AllParams.Add(["RANGE", ("Radius"), "0", "16", "32", "gradfun2", ("Neighborhood to fit the gradient to.  Larger radius makes for smoother gradients, but also prevents the filter from modifying pixels near detailed regions (default: 16).")])
-  Global.DrawGui(AllParams, "gradfun", aTabstrip, NotSwitchable,,, "lavfi")
+  AllParams.Add(["RANGE", ("Radius"), "4", "16", "32", "gradfun2", ("Neighborhood to fit the gradient to.  Larger radius makes for smoother gradients, but also prevents the filter from modifying pixels near detailed regions (default: 16).")])
+  Global.DrawGui(AllParams, "gradfun", aTabstrip, NotSwitchable,,, "lavfi", Me)
   AllParams.Clear
   
  'yadif=[mode[:field_dominance]]
-  AllParams.Add(["TITLE", "- Yet Another Deinterlace Filter. -", "yadif0", ""])
-  AllParams.Add(["ROCHOOSE", ("Deinterlace mode"), "", ("frame - Output 1 frame for each frame."), ("field - Output 1 frame for each field."), ("frame-nospatial - Like 0 but skips spatial interlacing check."), ("field-nospatial - Like 1 but skips spatial interlacing check"), "yadif1", ""])
-  AllParams.Add(["ROCHOOSE", ("Interlaced only"), "", ("no"), ("yes"), "yadif1", "Only deinterlace frames marked as interlaced "])
-  Global.DrawGui(AllParams, "yadif", aTabstrip, NotSwitchable)
+  AllParams.Add(["TITLE", ("- Yet Another Deinterlace Filter. -"), "yadif0", ""])
+  AllParams.Add(["ROCHOOSE", ("mode="), ("0 - Output 1 frame for each frame."), ("1 - Output 1 frame for each field."), ("2 - Like 0 but skips spatial interlacing check."), ("3 - Like 1 but skips spatial interlacing check"), "yadif11", ""])
+  AllParams.Add(["ROCHOOSE", ("parity="), ("0 - top field first"), ("1 - bottom field first"), ("-1 - auto"), "yadif12", ("Picture field parity to assume")])
+  AllParams.Add(["ROCHOOSE", ("deint="), ("0 - deinterlace all frames"), ("1 - only deinterlace frames marked as interlaced"), "yadif13", "Only deinterlace frames marked as interlaced "])
+  Global.DrawGui(AllParams, "yadif", aTabstrip, Switchable,,, "lavfi", Me)
   AllParams.Clear
   
-  AllParams.Add(["TITLE", "- VDPAU video postprocessing - ", "vdpaupp0", ""])
+  AllParams.Add(["TITLE", ("- VDPAU video postprocessing - "), "vdpaupp0", ""])
   AllParams.Add(["RANGEFLOAT", "sharpen=", "-1", "0.5", "1", "vdpaupp1", ("Sharpen filter, negative values will blur the picture")])
   AllParams.Add(["RANGEFLOAT", "denoise=", "0", "0.5", "1", "vdpaupp2", ("Denoise filter")])
   AllParams.Add(["ROCHOOSE", "deint=", "0 - disabled", "1 - enabled", "vdpaupp3", ("Wheater deinterlacing is enabled")])
@@ -607,35 +823,37 @@ Private Sub draw_filters_video_cfg()
   AllParams.Add(["ROCHOOSE", "pullup=", "no", "yes", "vdpaupp6", ("Try to apply inverse telecine, needs motion adaptive temporal deinterlacing.")])
   AllParams.Add(["ROCHOOSE", "interlaced-only=", "yes", "no", "vdpaupp7", ("If yes (default), only deinterlace frames marked as interlaced.")])
   AllParams.Add(["ROCHOOSE", "hqscaling=", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "vdpaupp8", ("Apply high quality VDPAU scaling (needs capable hardware).")])
-  AllParams.Add(["TIP", ("This filter only works with vdpau and opengl video outputs"), "vdpaupp9", ""])
-  Global.DrawGui(AllParams, "vdpaupp", aTabstrip, Switchable,,, "")
+  AllParams.Add(["TIP", ("This filter only works with vdpau and gpu(opengl?) video outputs"), "vdpaupp9", ""])
+  Global.DrawGui(AllParams, "vdpaupp", aTabstrip, Switchable,,, "", Me)
   AllParams.Clear
 
-  AllParams.Add(["TITLE", "- VAAPI video postprocessing - ", "vavpp0", ""])
+  AllParams.Add(["TITLE", ("- VAAPI video postprocessing - "), "vavpp0", ""])
   AllParams.Add(["ROCHOOSE", "deint=", "bob", "first-field", "weave", "motion-adaptive", "motion-compensated", "vvavpp1", ("Select the deinterlacing algorithm.")])
   AllParams.Add(["ROCHOOSE", "interlaced-only=", "yes", "no", "vavpp2", ("If yes (default), only deinterlace frames marked as interlaced.")])
-  AllParams.Add(["TIP", ("This filter only works with vaapi and opengl video outputs"), "vavpp3", ""])
-  Global.DrawGui(AllParams, "vavpp", aTabstrip, Switchable,,, "")
+  AllParams.Add(["TIP", ("This filter only works with vaapi and gpu(opengl?) video outputs"), "vavpp3", ""])
+  Global.DrawGui(AllParams, "vavpp", aTabstrip, Switchable,,, "", Me)
   AllParams.Clear
   
   'stereo3d=[in:out]
-  AllParams.Add(["TITLE", "- Converts betweed stereoscopic image formats - ", "stereo3d0", ""])
-  AllParams.Add(["CHOOSE", ("Input format"), ("sbsl - side by side parallel (left eye left, right eye right)"), ("sbsr - side by side crosseye (right eye left, left eye right)"), ("abl - above-below (left eye above, right eye below)"), ("abr - above-below (right eye above, left eye below)"), ("ab2l - above-below with half height resolution (left eye above, right eye below)"), ("ab2r - above-below with half height resolution (right eye above, left eye below)"), "stereo3d1", ""])
-  AllParams.add(["CHOOSE", ("Output format"), ("arcg - anaglyph red/cyan gray (red filter on left eye, cyan filter on right eye)"), ("arch - anaglyph red/cyan half colored (red filter on left eye, cyan filter on right eye)"), ("arcc - anaglyph red/cyan color (red filter on left eye, cyan filter on right eye)"), ("arcd - anaglyph red/cyan color optimized with the least squares projection of dubois (red filter on left eye, cyan filter on right eye)"), ("agmg - anaglyph green/magenta gray (green filter on left eye, magenta filter on right eye)"), ("agmh - anaglyph green/magenta half colored (green filter on left eye, magenta filter on right eye)"), ("agmc - anaglyph green/magenta colored (green filter on left eye, magenta filter on right eye)"), ("aybg - anaglyph yellow/blue gray (yellow filter on left eye, blue filter on right eye)"), ("aybh - anaglyph yellow/blue half colored (yellow filter on left eye, blue filter on right eye)"), ("aybc - anaglyph yellow/blue colored (yellow filter on left eye, blue filter on right eye)"), ("irl - Interleaved rows (left eye has top row, right eye starts on next row)"), ("irr - Interleaved rows (right eye has top row, left eye starts on next row)"), ("ml - mono output (left eye only)"), ("mr - mono output (right eye only)"), "stereo3d2", ""])  
-  Global.DrawGui(AllParams, "stereo3d", aTabstrip, NotSwitchable)
+  AllParams.Add(["TITLE", ("- Converts betweed stereoscopic image formats - "), "stereo3d0", ""])
+  AllParams.Add(["CHOOSE", ("Input format"), ("sbsl - side by side parallel (left eye left, right eye right)"), ("sbsr - side by side crosseye (right eye left, left eye right)"), ("sbs2l - side by side parallel with half width resolution (left eye left, right eyeright)"), ("sbs2r - side by side crosseye with half width resolution (right eye left, left eye right)"), ("abl - above-below (left eye above, right eye below)"), ("tbl - above-below (left eye above, right eye below)"), ("abr - above-below (right eye above, left eye below)"), ("tbr - above-below (right eye above, left eye below)"), ("ab2l - above-below with half height resolution (left eye above, right eye below)"), ("tb2l - above-below withhalf height resolution (left eye above, right eye below)"), ("ab2r - above-below with half height resolution (right eye above, left eye below)"), ("tb2r - above-below with half height resolution (right eye above, left eyebelow)"), ("al - alternating frames (left eye first, right eye second)"), ("ar - alternating frames (right eye first, left eye second)"), ("irl - interleaved rows (left eye has top row, right eye starts on next row)"), ("irr - interleaved rows (right eye has top row, left eye starts on next row)"), ("icl - interleaved columns, left eye first)"), ("icr - interleaved columns, right eye first)"), "stereo3d1", ""])
+  'AllParams.add(["CHOOSE", ("Output format"), ("arcg - anaglyph red/cyan gray (red filter on left eye, cyan filter on right eye)"), ("arch - anaglyph red/cyan half colored (red filter on left eye, cyan filter on right eye)"), ("arcc - anaglyph red/cyan color (red filter on left eye, cyan filter on right eye)"), ("arcd - anaglyph red/cyan color optimized with the least squares projection of dubois (red filter on left eye, cyan filter on right eye)"), ("agmg - anaglyph green/magenta gray (green filter on left eye, magenta filter on right eye)"), ("agmh - anaglyph green/magenta half colored (green filter on left eye, magenta filter on right eye)"), ("agmc - anaglyph green/magenta colored (green filter on left eye, magenta filter on right eye)"), ("aybg - anaglyph yellow/blue gray (yellow filter on left eye, blue filter on right eye)"), ("aybh - anaglyph yellow/blue half colored (yellow filter on left eye, blue filter on right eye)"), ("aybc - anaglyph yellow/blue colored (yellow filter on left eye, blue filter on right eye)"), ("irl - Interleaved rows (left eye has top row, right eye starts on next row)"), ("irr - Interleaved rows (right eye has top row, left eye starts on next row)"), ("ml - mono output (left eye only)"), ("mr - mono output (right eye only)"), ("al - alternating mode, left first"), ("ar - alternating mode, right first"), "stereo3d2", ""])  
+  AllParams.add(["CHOOSE", ("Output format"), ("sbsl - side by side parallel (left eye left, right eye right)"), ("sbsr - side by side crosseye (right eye left, left eye right)"), ("sbs2l - side by side parallel with half width resolution (left eye left, right eyeright)"), ("sbs2r - side by side crosseye with half width resolution (right eye left, left eye right)"), ("abl - above-below (left eye above, right eye below)"), ("tbl - above-below (left eye above, right eye below)"), ("abr - above-below (right eye above, left eye below)"), ("tbr - above-below (right eye above, left eye below)"), ("ab2l - above-below with half height resolution (left eye above, right eye below)"), ("tb2l - above-below withhalf height resolution (left eye above, right eye below)"), ("ab2r - above-below with half height resolution (right eye above, left eye below)"), ("tb2r - above-below with half height resolution (right eye above, left eyebelow)"), ("al - alternating frames (left eye first, right eye second)"), ("ar - alternating frames (right eye first, left eye second)"), ("irl - interleaved rows (left eye has top row, right eye starts on next row)"), ("irr - interleaved rows (right eye has top row, left eye starts on next row)"), ("arbg - anaglyph red/blue gray (red filter on left eye, blue filter on right eye)"), ("argg - anaglyph red/green gray (red filter on left eye,green filter on right eye)"), ("arcg - anaglyph red/cyan gray (red filter on left eye, cyan filter on right eye)"), ("arch - anaglyph red/cyan half colored (red filter on left eye, cyan filter on right eye)"), ("arcc -anaglyph red/cyan color (red filter on left eye, cyan filter on right eye)"), ("arcd - anaglyph red/cyan color optimized with the least squares projection of dubois (red filter on left eye, cyan filter on right eye)"), ("agmg-anaglyph green/magenta gray (green filter on left eye, magenta filter on right eye)"), ("agmh - anaglyph green/magenta half colored (green filter on left eye, magenta filter on right eye)"), ("agmc - anaglyph green/magentacolored (green filter on left eye, magenta filter on right eye)"), ("agmd - anaglyph green/magenta color optimized with the least squares projection of dubois (green filter on left eye, magenta filter on right eye)"), ("aybg - anaglyph yellow/blue gray (yellow filter on left eye, blue filter on right eye)"), ("aybh - anaglyph yellow/blue half colored (yellow filter on left eye, blue filter on right eye)"), ("aybc - anaglyph yellow/bluecolored (yellow filter on left eye, blue filter on right eye)"), ("aybd - anaglyph yellow/blue color optimized with the least squares projection of dubois (yellow filter on left eye, blue filter on right eye)"), ("ml -monooutput (left eye only)"), ("mr - mono output (right eye only)"), ("chl - checkerboard, left eye first)"), ("chr - checkerboard, right eye first)"), ("icl - interleaved columns, left eye first)"), ("icr - interleaved columns, right eye first)"), ("hdmi - HDMI frame pack"), "stereo3d2", ""])  
+  Global.DrawGui(AllParams, "stereo3d", aTabstrip, NotSwitchable,,, "lavfi", Me)
   AllParams.Clear
 End
 
-Private Function parse_video_filter_custom() As String
+Private Function parse_video_filter_custom(atabstrip_index As Integer) As String[]
 'will parse the filter which the user can freely configure.
   Dim MyScrollView As Object  'the scrollview present in every tab, parent of all the controls
                               'in the tab, it is created in the fillfilters function
   Dim PanelObject As Object 'the Hbox which contains a single parameter
                             'it is created by DrawFiltersGui function
+
+  Dim out As New String[]                           
   Dim SubObject As Object
   Dim customfilter As String = ""
-
-  For Each MyScrollview In TabStrip_filters_video.Children
+  For Each MyScrollview In TabStrip_filters_video[atabstrip_index].Children
     For Each PanelObject In MyScrollView.Children
       If PanelObject.name Like "*HBox" Then
         For Each SubObject In PanelObject.Children
@@ -643,13 +861,7 @@ Private Function parse_video_filter_custom() As String
             If (SubObject Is Checkbox) Then
               If subobject.value = True Then
                 If subobject.next Is Textbox Then
-                  If Trim(subobject.NEXT.text) <> "" Then
-                    If customfilter = "" Then
-                      customfilter = customfilter & subobject.NEXT.text
-                        Else
-                      customfilter = customfilter & "," & subobject.NEXT.text
-                    Endif
-                  Endif
+                  If Trim(subobject.NEXT.text) <> "" Then out.add(subobject.NEXT.text)
                 Endif
               Endif
             Endif
@@ -658,11 +870,11 @@ Private Function parse_video_filter_custom() As String
       Endif
     Next
   Next
-  Return customfilter
+  Return out
 End
 
 
-Private Function parse_audio_filter_custom() As String
+Private Function parse_audio_filter_custom(atabstrip_index As Integer) As String[]
 'will parse the filter which the user can freely configure.
   Dim MyScrollView As Object  'the scrollview present in every tab, parent of all the controls
                               'in the tab, it is created in the fillfilters function
@@ -671,7 +883,9 @@ Private Function parse_audio_filter_custom() As String
   Dim SubObject As Object
   Dim customfilter As String = ""
 
-  For Each MyScrollview In TabStrip_filters_audio.Children
+  Dim out As New String[]
+
+  For Each MyScrollview In TabStrip_filters_audio[atabstrip_index].Children
     For Each PanelObject In MyScrollView.Children
       If PanelObject.name Like "*HBox" Then
         For Each SubObject In PanelObject.Children
@@ -679,13 +893,7 @@ Private Function parse_audio_filter_custom() As String
             If (SubObject Is Checkbox) Then
               If subobject.value = True Then
                 If subobject.next Is Textbox Then
-                  If Trim(subobject.NEXT.text) <> "" Then
-                    If customfilter = "" Then
-                      customfilter = customfilter & subobject.NEXT.text
-                        Else
-                      customfilter = customfilter & "," & subobject.NEXT.text
-                    Endif
-                  Endif
+                  If Trim(subobject.NEXT.text) <> "" Then out.Add(subobject.NEXT.text)
                 Endif
               Endif
             Endif
@@ -694,11 +902,68 @@ Private Function parse_audio_filter_custom() As String
       Endif
     Next
   Next
-  Return customfilter
+  'Return customfilter
+  Return out
+End
+
+Private Function parse_scale() As String
+  Dim UD, interl, w, h As String
+  Dim force_original_aspect_ratio As String
+  Dim out As String
+
+  'Calculate width and height depending on the upscale preference
+  UD = Left(scale_ud.text, 1)
+  If UD = "" Then UD = 0
+    Select Case UD
+        Case 0 'all permitted
+            w = scale_w.value
+            h = scale_h.value
+        Case 1 'disallow downscaling
+            If scale_w.value > 1 Then
+                w = "'max(iw\\," & scale_w.value & ")'"
+                  Else
+                w = scale_w.value
+            Endif
+    
+            If scale_h.value > 1 Then
+                h = "'max(ih\\," & scale_h.value & ")'"
+                  Else
+                h = scale_h.value
+            Endif
+    
+        Case 2 'disallow upscaling
+            If scale_w.value > 1 Then
+                w = "'min(iw\\," & scale_w.value & ")'"
+                  Else
+                w = scale_w.value
+            Endif
+    
+            If scale_h.value > 1 Then
+                h = "'min(ih\\," & scale_h.value & ")'"
+                  Else
+                h = scale_h.value
+            Endif
+    End Select
+  
+  interl = -1
+  Try interl = Split(scale_i.text, " ")[0]
+  force_original_aspect_ratio = scale_a.Text
+  If Trim(force_original_aspect_ratio) = "" Then force_original_aspect_ratio = "disable"
+  
+  out = "lavfi=["
+    out &= "scale="
+    out &= "w=" & w & ":"
+    out &= "h=" & h & ":"
+    out &= "interl=" & interl & ":"
+    out &= "force_original_aspect_ratio=" & force_original_aspect_ratio 
+  out &= "]"  
+  Debug out
+  Return out
 End
 
 
-Private Function Parse_video_filter(Filtername As String) As String
+
+Private Function Parse_video_filter(Filtername As String) As String[]
   'will parse the tabstrip at filtername index and output
   'a commandline to add a filter in mplayer
   Dim ParsedFilter As String = Lower((FilterName))
@@ -709,20 +974,25 @@ Private Function Parse_video_filter(Filtername As String) As String
   Dim aTabstrip As Tabstrip = TabStrip_filters_video
   Dim i As Integer
   Dim parse As Boolean = True
-  Dim out As String
+  Dim out As New String[]
   Dim is_lavfi As Boolean = False
-  i = aTabstrip.index
+  Dim subtext As String
+  Dim atabstrip_index As Integer
+
+  
   'Find the ParsedFilter Tab and activate it:
-  aTabstrip.index = aTabstrip.Tag.Find(ParsedFilter)
-  If Parsedfilter Like "customvideo*" Then
-    out = parse_audio_filter_custom()
-    aTabstrip.index = i 
+  atabstrip_index = aTabstrip.Tag.Find(ParsedFilter)
+  
+  If parsedfilter = "scale" Then Return [parse_scale()]
+  
+  If Parsedfilter Begins "customvideo" Then
+    out.insert(parse_video_filter_custom(atabstrip_index))
     Return out
       Else
     'Discend the Tab objects,parse them and build the commandline
     'hierarchy is:
     'Tabstrip -> scrollviews -> Panels -> ParameterObjects
-    For Each MyScrollview In aTabstrip.Children
+    For Each MyScrollview In aTabstrip[atabstrip_index].Children
       If MyScrollView.tag = "lavfi" Then is_lavfi = True
       For Each PanelObject In MyScrollView.Children
         If PanelObject.name Like "*HBox" Then
@@ -731,16 +1001,122 @@ Private Function Parse_video_filter(Filtername As String) As String
           '   Break
           ' Endif
           For Each SubObject In PanelObject.Children
+
             If Not (SubObject Is Label) Then
               If (SubObject Is Checkbox) Then
-                parse = SubObject.value '(is a checkbox,parse only if it is checked)
-                  Else If Lower(subobject.name) Like "noparse*" Then
+                '(is a checkbox,parse only if it is checked)
+                parse = SubObject.value And Not (Lower(subobject.name) Begins "noparse")
+                  Else If Lower(subobject.name) Begins "noparse" Then
                     parse = False
               Endif
-              If SubObject.text <> "" Then
-                If (parse And Not (subobject Is Checkbox)) Then TmpString = global.RemoveShortcut(TmpString & Split(SubObject.text, " ")[0] & ":")
+              
+              'patch
+              If subobject Is Spinbar Then 
+                subtext = Replace(CString(subobject.value), ",", ".")
+                  Else
+                subtext = subobject.text
+              Endif
+              
+              If Subtext <> "" Then
+                If (parse And Not (subobject Is Checkbox)) Then TmpString = global.RemoveShortcut(TmpString & Split(Subtext, " ")[0] & ":")
                 If (parse And (subobject Is Checkbox)) Then
-                  TmpString = global.RemoveShortcut(TmpString & Split(SubObject.text, " ")[0]) 'fixmempv perchè non mette i due punti alla fine del checkbox?
+                  TmpString = global.RemoveShortcut(TmpString & Split(Subtext, " ")[0]) 'fixmempv perchè non mette i due punti alla fine del checkbox?
+                Endif
+                  Else
+                If parse Then
+                  TmpString = global.RemoveShortcut(TmpString & ":")
+                Endif
+              Endif
+            Endif
+          Next
+        Endif
+      Next
+    Next
+
+    If (Right(tmpstring) = ":") Then
+      TmpString = Left(Tmpstring, -1)
+    Endif
+
+    If tmpstring <> "" Then parsedfilter = ParsedFilter & "=" & TmpString
+    If is_lavfi Then parsedfilter = "lavfi=[" & parsedfilter & "]"
+    Return ["@label_" & Lower(filtername) & ":" & ParsedFilter]
+
+  Endif
+End
+
+Private Function Parse_audio_filter(Filtername As String) As String[]
+  'will parse the tabstrip at filtername index and output
+  'a commandline to add a filter in mplayer
+  Dim ParsedFilter As String = Lower((FilterName))
+  Dim TmpString As String = ""
+  Dim MyScrollView As Object  'the scrollview present in every tab, parent of all the controls in the tab
+  Dim PanelObject As Object 'the Hbox which contains a single parameter it is created by DrawFiltersGui function
+  Dim SubObject As Object
+  Dim aTabstrip As Tabstrip = TabStrip_filters_audio
+  Dim i As Integer
+  Dim parse As Boolean = True
+  Dim out As New String[]
+  Dim is_lavfi As Boolean = False
+  Dim subtext As String
+  Dim anequalizer_string, superequalizer_string As String
+  Dim out_anequalizer As String = ""
+  Dim atabstrip_index As Integer
+  Dim autogaindB As Float
+
+  'Find the ParsedFilter Tab and activate it:
+  atabstrip_index = aTabstrip.Tag.Find(ParsedFilter)
+  If Parsedfilter = "anequalizer" Then
+    anequalizer_string = eqstring(False, ByRef autogaindB)
+    If autogaindB > 0 Then
+      out.Add("lavfi=[volume=-" & Replace(Str(autogaindB), ",", ".") & "dB]")
+    Endif   
+    out.Add("\"lavfi=[anequalizer=" & anequalizer_string & "]\"") 'this way it works at start time only" 
+    Return out
+    
+  Else If Parsedfilter = "compand" Then
+    Return [parse_compand()]
+  Else If Parsedfilter = "acompressor" Then
+    Return [parse_acompressor()]
+  Else If Parsedfilter = "superequalizer" Then
+    superequalizer_string = parsed_superequalizer(ByRef autogaindB)
+    If autogaindB > 0 Then
+      out.Add("lavfi=[volume=-" & Replace(Str(autogaindB), ",", ".") & "dB]")
+    Endif   
+    out.Add(superequalizer_string)
+    Return out
+  Else If Parsedfilter Begins "customaudio" Then
+    out.Insert(parse_audio_filter_custom(atabstrip_index))
+    'out.add(parse_audio_filter_custom(atabstrip_index))
+    Return out
+      Else
+    'Discend the Tab objects,parse them and build the commandline
+    'hierarchy is:
+    'Tabstrip -> scrollviews -> Panels -> ParameterObjects
+    For Each MyScrollview In aTabstrip[atabstrip_index].Children
+      If MyScrollView.tag = "lavfi" Then is_lavfi = True
+      For Each PanelObject In MyScrollView.Children
+        If PanelObject.name Like "*HBox" Then
+          parse = True
+          For Each SubObject In PanelObject.Children
+            If Not (SubObject Is Label) Then
+              If (SubObject Is Checkbox) Then
+                '(is a checkbox,parse only if it is checked)
+                parse = SubObject.value And Not (Lower(subobject.name) Begins "noparse")
+                  Else If Lower(subobject.name) Begins "noparse" Then
+                    parse = False
+              Endif
+              
+              'patch
+              If subobject Is Spinbar Then 
+                subtext = Replace(CString(subobject.value), ",", ".")
+                  Else
+                subtext = subobject.text
+              Endif
+              
+              If subtext <> "" Then
+                If (parse And Not (subobject Is Checkbox)) Then TmpString = global.RemoveShortcut(TmpString & Split(subtext, " ")[0] & ":")
+                If (parse And (subobject Is Checkbox)) Then
+                  TmpString = global.RemoveShortcut(TmpString & Split(Subtext, " ")[0]) 'fixmempv perchè non mette i due punti alla fine del checkbox?
                 Endif
                   Else
                 If parse Then
@@ -753,81 +1129,23 @@ Private Function Parse_video_filter(Filtername As String) As String
         Endif
       Next
     Next
+    
+    
+    
 
     If (Right(tmpstring) = ":") Then
-      TmpString = Left(Tmpstring, - 1)
+      TmpString = Left(Tmpstring, -1)
     Endif
-    aTabstrip.index = i
+
     If tmpstring <> "" Then parsedfilter = ParsedFilter & "=" & TmpString
     If is_lavfi Then parsedfilter = "lavfi=[" & parsedfilter & "]"
-    Return ParsedFilter
+    Return ["@label_" & Lower(filtername) & ":" & ParsedFilter]
 
   Endif
 End
 
 
-
-
-Private Function OLD_Parse_video_filter(Filtername As String) As String
-  'will parse the tabstrip at filtername index and output
-  'a commandline to add a filter in mplayer
-  Dim ParsedFilter As String = Lower(FilterName)
-  Dim TmpString As String = ""
-  Dim MyScrollView As Object   'the scrollview present in every tab, parent of all the controls in the tab
-  Dim PanelObject As Object 'the Hbox which contains a single parameter it Is Created by DrawFiltersGui
-  Dim SubObject As Object
-  Dim aTabstrip As Tabstrip = TabStrip_filters_video
-  Dim i As Integer
-  Dim parse As Boolean = True
-  Dim out As String
-  Dim is_lavfi As Boolean = False
-  i = aTabstrip.index
-  'Find the ParsedFilter Tab and activate it:
-  aTabstrip.index = Global.TabIndexByName(ParsedFilter, aTabstrip)
-  If Parsedfilter Like "customvideo*" Then
-    out = Parse_video_filter_Custom()
-    aTabstrip.index = i
-    Return out
-      Else
-    'Discend the Tab objects,parse them and build the commandline
-    'hierarchy is:
-    'Tabstrip -> scrollviews -> Panels -> ParameterObjects
-    For Each MyScrollview In aTabstrip.Children
-      If MyScrollView.tag = "lavfi" Then is_lavfi = True
-      For Each PanelObject In MyScrollView.Children
-        If PanelObject.name Like "*HBox" Then
-          For Each SubObject In PanelObject.Children
-            If Not (SubObject Is Label) Then
-              If Not ((SubObject Is Checkbox) Or (subobject.name Like "NOPARSE*")) Then
-                parse = True
-                ' Stop
-                ' If PanelObject.tag = "lavfi" Then
-                '   Break
-                ' Endif
-                  Else
-                parse = SubObject.value '(is a checkbox,parse only if it is checked)
-              Endif
-              If SubObject.text <> "" Then
-                If parse Then TmpString = global.RemoveShortcut(TmpString & Split(SubObject.text, " ")[0] & ":")
-                  Else
-                If parse Then TmpString = global.RemoveShortcut(TmpString & ":")
-              Endif
-            Endif
-          Next
-        Endif
-      Next
-    Next
-    TmpString = Left(Tmpstring, Len(TmpString) - 1)
-    aTabstrip.index = i
-    If tmpstring <> "" Then parsedfilter = ParsedFilter & "=" & TmpString
-    If is_lavfi Then parsedfilter = "lavfi=[" & parsedfilter & "]"
-    Return ParsedFilter
-
-  Endif
-End
-
-
-Private Function Parse_audio_filter(Filtername As String) As String
+Private Function Parse_audio_filter_old(Filtername As String) As String
   'will parse the tabstrip at filtername index and output
   'a commandline to add a filter in mplayer
   Dim ParsedFilter As String = Lower((FilterName))
@@ -840,41 +1158,61 @@ Private Function Parse_audio_filter(Filtername As String) As String
   Dim parse As Boolean = True
   Dim out As String
   Dim is_lavfi As Boolean = False
-  i = aTabstrip.index
-  
+  Dim subtext As String
+  Dim anequalizer_string As String
+  Dim out_anequalizer As String = ""
+  Dim atabstrip_index As Integer
+  Dim autogaindB As Integer
+
   'Find the ParsedFilter Tab and activate it:
-  aTabstrip.index = aTabstrip.Tag.Find(ParsedFilter)
-  If ParsedFilter = "equalizer" Then
-    out = ParseEq()
-    aTabstrip.index = i 
-    Return out
-  Else If Parsedfilter Like "customaudio*" Then
-    out = parse_audio_filter_custom()
-    aTabstrip.index = i 
+  atabstrip_index = aTabstrip.Tag.Find(ParsedFilter)
+  If Parsedfilter = "anequalizer" Then
+    anequalizer_string = eqstring(False, ByRef autogaindB)
+    If autogaindB > 0 Then
+      out_anequalizer = "lavfi=[volume=-" & autogaindB & "dB],"
+    Endif   
+    out_anequalizer &= "\"lavfi=[anequalizer=" & anequalizer_string & "]\"" 'this way it works at start time only" 
+    
+    
+    Return out_anequalizer
+  Else If Parsedfilter = "compand" Then
+    Return parse_compand()
+  Else If Parsedfilter = "acompressor" Then
+    Return parse_acompressor()
+    
+
+  Else If Parsedfilter Begins "customaudio" Then
+    out = parse_audio_filter_custom(atabstrip_index)
     Return out
       Else
     'Discend the Tab objects,parse them and build the commandline
     'hierarchy is:
     'Tabstrip -> scrollviews -> Panels -> ParameterObjects
-    For Each MyScrollview In aTabstrip.Children
+    For Each MyScrollview In aTabstrip[atabstrip_index].Children
       If MyScrollView.tag = "lavfi" Then is_lavfi = True
       For Each PanelObject In MyScrollView.Children
         If PanelObject.name Like "*HBox" Then
           parse = True
-          ' If PanelObject.tag = "lavfi" Then
-          '   Break
-          ' Endif
           For Each SubObject In PanelObject.Children
             If Not (SubObject Is Label) Then
               If (SubObject Is Checkbox) Then
-                parse = SubObject.value '(is a checkbox,parse only if it is checked)
-                  Else If Lower(subobject.name) Like "noparse*" Then
+                '(is a checkbox,parse only if it is checked)
+                parse = SubObject.value And Not (Lower(subobject.name) Begins "noparse")
+                  Else If Lower(subobject.name) Begins "noparse" Then
                     parse = False
               Endif
-              If SubObject.text <> "" Then
-                If (parse And Not (subobject Is Checkbox)) Then TmpString = global.RemoveShortcut(TmpString & Split(SubObject.text, " ")[0] & ":")
+              
+              'patch
+              If subobject Is Spinbar Then 
+                subtext = Replace(CString(subobject.value), ",", ".")
+                  Else
+                subtext = subobject.text
+              Endif
+              
+              If subtext <> "" Then
+                If (parse And Not (subobject Is Checkbox)) Then TmpString = global.RemoveShortcut(TmpString & Split(subtext, " ")[0] & ":")
                 If (parse And (subobject Is Checkbox)) Then
-                  TmpString = global.RemoveShortcut(TmpString & Split(SubObject.text, " ")[0]) 'fixmempv perchè non mette i due punti alla fine del checkbox?
+                  TmpString = global.RemoveShortcut(TmpString & Split(Subtext, " ")[0]) 'fixmempv perchè non mette i due punti alla fine del checkbox?
                 Endif
                   Else
                 If parse Then
@@ -887,33 +1225,35 @@ Private Function Parse_audio_filter(Filtername As String) As String
         Endif
       Next
     Next
+    
+    
+    
 
     If (Right(tmpstring) = ":") Then
-      TmpString = Left(Tmpstring, - 1)
+      TmpString = Left(Tmpstring, -1)
     Endif
-    aTabstrip.index = i
+
     If tmpstring <> "" Then parsedfilter = ParsedFilter & "=" & TmpString
     If is_lavfi Then parsedfilter = "lavfi=[" & parsedfilter & "]"
-    Return ParsedFilter
+    Return "@label_" & Lower(filtername) & ":" & ParsedFilter
 
   Endif
 End
 
 Public Sub ApplyBTN_Click()
-  OkToChangeToCustom = False
-  Fmain.apply
-  OkToChangeToCustom = True
-End
+    If Not initdone Then Return
+    If Not alreadyloaded Then Return
+    Fmain.apply
+ End
 
-
-
-Public Function parse_drivers(audio As Boolean) As String
+Public Function parse_drivers(audio As Boolean) As MpvOption[]
   Dim item_box As Hbox
   Dim cBox As Checkbox 
   Dim item_name As String
-  Dim drivers As String
+  Dim drivers, drivers_list As String
+  Dim driver_opts As New MpvOption[]
   Dim item_container As Object
-  Dim video_driver_overridden As String = ""
+  Dim return_opts As New MpvOption[]
 
   If audio Then 
     item_container = drivers_audio_container
@@ -921,42 +1261,53 @@ Public Function parse_drivers(audio As Boolean) As String
     item_container = drivers_video_container
   Endif
   
-  If Not audio Then 'search for any override in generaloptions (like hwdec macro)
-    Try video_driver_overridden = GeneralOptions.video_driver_overridden() 
-    If video_driver_overridden <> "" Then
-        drivers &= parse_video_driver(video_driver_overridden, item_container.tag) & ","
-        Goto returnlabel
-    Endif
-  Endif
-  
   For Each item_box In item_container.children
     item_name = item_box.name
     cBox = Me.Controls[item_name & "_checkbox_" & item_container.name]  
-    If cBox.value = True Then
+    If cBox.value = CheckBox.True Then
+      drivers_list &= "," & item_name
       If audio Then 
-        drivers &= parse_audio_driver(item_name, item_container.tag) & ","
+        Try driver_opts.Insert(parse_audio_driver(item_name, item_container.tag))
           Else
-        drivers &= parse_video_Driver(item_name, item_container.tag) & ","
+        Try driver_opts.Insert(parse_video_Driver(item_name, item_container.tag))
       Endif
     Endif
   Next
   
   ReturnLabel:
-  If Right(drivers) = "," Then drivers = Left(drivers, "-1")
-  Return drivers
+  
+  return_opts.Insert(driver_opts)
+  'remove the leading ","
+  If Left(drivers_list) = "," Then drivers_list = Right(drivers_list, "-1")
+  
+  
+  If Trim(drivers_list) <> "" Then
+    If audio Then
+      return_opts.Add(newopt("ao", drivers_list))
+        Else
+      return_opts.Add(newopt("vo", drivers_list))
+    Endif
+  Endif
+  
+  
+  
+  
+  'If Right(drivers) = "," Then drivers = Left(drivers, "-1")
+  'Return drivers
+  Return return_opts
   
 End
 
 
-
-
-Public Function parse_filters(audio As Boolean) As String
+Public Function parse_filters(audio As Boolean) As String[]
   Dim item_name As String
   Dim item_box As Hbox
   Dim cBox As Checkbox
   Dim filters As String
+  Dim aFilters As New String[]
   Dim filters_container As Scrollview
   Dim filter As String
+
   If audio Then 
     filters_container = filters_audio_container
       Else
@@ -968,168 +1319,27 @@ Public Function parse_filters(audio As Boolean) As String
     item_name = item_box.name
     cBox = Me.Controls[item_name & "_checkbox_" & filters_container.name]
     If cBox.value = True Then
+
       If audio Then 
-        filter = Parse_audio_filter(item_name)        'needed to fix
-        If filter <> "" Then filters &= filter & ","  'null custom filters
+        For Each filter In Parse_audio_filter(item_name)
+          If filter <> "" Then aFilters.Add(filter)
+        Next
           Else
-        filter = Parse_video_filter(item_name)        'needed to fix
-        If filter <> "" Then filters &= filter & ","  'null custom filters
+        For Each filter In Parse_video_filter(item_name)
+          If filter <> "" Then aFilters.Add(filter) 
+        Next
       Endif
     Endif
+
   Next
-  While Right(filters) = ","
-    filters = Left(filters, -1)
-  Wend
-  Return filters
+
+  Return aFilters
 End
-
-
-
-
-
-
-
-
-'-------------- Manage Audio Equalizer ------------------
-Public NewEq As String
-
-Private Function ParseEq() As String
-
-  'Force an update of neweq
-  SlidersFreq_Change()
-  Return neweq
-End
-
-'salva 'il settagio custom su un file
-'ricaricalo quando si sceglie custom
-'quando salvare il settaggio su un file?
-'basta salvarlo quando si cambia preset
-
-Private OkToChangeToCustom As Boolean = True
-
-Public Sub SlidersFreq_Change()
-  Dim Theslider, TheTextbox As Object
-  Dim params As String = ""
-  Dim i As Integer = 0
-  If Not presetting Then
-    If OkToChangeToCustom Then
-      customizing = True
-      PresetsCombobox.text = ("Custom")
-      customizing = False
-    Endif
-  Endif
-  If UpdatingGui Then Return
-  For Each Theslider In sliderscontainer.Children
-    If Theslider Is Slider Then
-      'params = params & (12 - TheSlider.value - 12) & ":"
-      params = params & (TheSlider.value) & ":"
-      'params = params & ":"
-      TheTextbox = valuescontainer.children[i]
-      'TheTextbox.text = (12 - TheSlider.value - 12)
-      TheTextbox.text = TheSlider.value
-      i = i + 1
-    Endif
-  Next 'slider
-  params = Left$(params, Len(params) - 1)
-  NewEq = "equalizer=" & params
-  Try FMain.mplayer.send("pausing_keep af_cmdline equalizer " & params)
-  If Lower(PresetsCombobox.text) = "custom" Then SaveCustomEqSettings(params)
-End
-
-Private presetting As Boolean = False
-
-Private customizing As Boolean = False
-Public Sub PresetsCombobox_click()
-  If Customizing Then Return
-  presetting = True
-  Select Case Trim(Lower(PresetsCombobox.text))
-    Case "flat"
-      UpdateGui("0:0:0:0:0:0:0:0:0:0")
-    Case "1965"
-      UpdateGui("-20:-7:-4:-7:3:-2:-4:4:1:-6")
-    Case "air"
-      UpdateGui("0:0:0:0:0:0:0:0:0:3")
-    Case "brittle"
-      UpdateGui("-12:-9:-7:-5:-2:-2:-2:-1:4:1")
-    Case "car stereo"
-      UpdateGui("-5:1:0:-4:-5:-3:-2:-2:1:-2")
-    Case "classic v"
-     UpdateGui("5:0:-5:-8:-7:-4:-3:-1:3:5")
-    Case "clear"
-     UpdateGui("1:0:0:0:0:0:0:0:2:2")
-    Case "death"
-     UpdateGui("20:12:4:0:0:0:0:0:0:0")
-    Case "dark"
-      UpdateGui("-6:-2:-2:-2:-2:-2:-5:-8:-12:-18")
-    Case "drums"
-     UpdateGui("2:0:0:0:0:0:0:2:0:0")
-    Case "home theater"
-     UpdateGui("5:0:-3:-6:-5:-1:0:-1:3:3")
-    Case "loudness"
-      UpdateGui("4:4:-2:-2:-2:-2:-4:-10:0:4")
-    Case "metal"
-     UpdateGui("4:5:0:-2:0:1:1:1:-1:-1")
-    Case "pop"
-     UpdateGui("6:3:-2:-4:-3:0:0:2:2:5")
-    Case "premaster"
-     UpdateGui("0:3:-3:0:0:0:0:3:3:3")
-    Case "presence"
-      UpdateGui("0:0:0:0:0:5:4:3:0:0")
-    Case "punch & sparkle"
-      UpdateGui("3:3:-3:-5:-2:1:1:0:1:5")
-    Case "shimmer"
-      UpdateGui("0:0:-2:-5:0:0:0:4:3:4")
-    Case "soft bass"
-      UpdateGui("3:4:-13:-5:-1:5:1:-1:-2:-9")
-    Case "strings"
-      UpdateGui("-3:-4:-5:-4:-2:-2:-2:-1:3:-2")
-     Case "custom"
-       UpdateGui(LoadCustomEqSettings())
-  End Select
-  SlidersFreq_Change()
-  presetting = False
-End
-
-Private UpdatingGui As Boolean = False
-Public Sub UpdateGui(Params As String)
-  Dim value As Integer
-  Dim i As Integer = 0
-  Dim valueobj, sliderobj As Object
-  UpdatingGui = True
-    For Each value In Split(params, ":", "", True)
-      valueobj = valuescontainer.children[i]
-      sliderobj = sliderscontainer.children[i]
-      valueobj.text = value
-      sliderobj.value = value
-      i = i + 1
-    Next 'value
-  UpdatingGui = False
-End
-
-Private Sub SaveCustomEqSettings(EqSettings As String)
-  File.Save(global.confpath & "/" & global.currentprofile & ".profile/audioequalizer.txt", EqSettings)
-End
-
-Private Function LoadCustomEqSettings() As String
-  Try Return File.Load(global.confpath & "/" & global.currentprofile & ".profile/audioequalizer.txt")
-End
-
-
-'-------------------- end manage equalizer
-
-
-
 
 
 'Save and Load Functions------------------------------------------------------
 
-Public Sub savecurrent()
-  Dim MySettings As New SettingsClass
-  MySettings.Save(Me, global.confpath & "/" & global.CurrentProfile)
-  global.save_cached_options(global.CurrentProfile) 
-End
-
-Public Sub SaveBTN_Click()
+Public Sub store_chains_order()
   'store items order in textboxes, so that the settings class will save them
   Dim item As Hbox
 
@@ -1152,6 +1362,17 @@ Public Sub SaveBTN_Click()
   For Each item In drivers_video_container.Children
     drivers_video_order.text &= item.name & Chr(8)
   Next
+End
+
+
+Public Sub savecurrent()
+  Dim MySettings As New SettingsClass
+  store_chains_order()
+  MySettings.Save(Me, global.confpath & "/" & global.CurrentProfile)
+  global.save_cached_options(global.CurrentProfile) 
+End
+
+Public Sub SaveBTN_Click()
   savecurrent()
 End
 
@@ -1199,6 +1420,7 @@ Public Sub MenuSaveToAll_Click()
   If MyQuestion.Ask(("This will save this window settings\n to all profiles found but the 'Factory_defaults' one"), ("Proceed"), ("Don't")) = 2 Then
     Return
       Else
+     store_chains_order()
      For Each profilename In Dir(global.confpath & "/", "*.profile")
         If Stat(global.confpath & "/" & profilename, True).type = gb.Directory Then
           profilenamesplitted = Split(profilename, ".")[0]
@@ -1214,27 +1436,6 @@ End
 
 '--End Save and load functions-----------------------------------
 'Private tabs As String[] = ["filters_video", "filters_audio", "drivers_video", "drivers_audio"] '<
-
-
-
-Public Sub override_video_driver(vo As String)
-  If vo = "" Then 
-    NewChains.drivers_video_container.enabled = True
-    nosavelabel1.text = ""
-    nosavelabel1.Visible = False
-    Return
-      Else
-    NewChains.drivers_video_container.enabled = False
-    nosavelabel1.text = vo & " " & ("is overridden")
-    nosavelabel1.Visible = True
-  Endif
-End
-
-
-
-
-
-
 
 Public Sub show_audio_drivers()
   Me.Show
@@ -1258,6 +1459,7 @@ Public Sub OkBTN_Click()
   Me.hide
 End
 
+
 Private aligned As Boolean = False
 Public Sub Form_Open()
   If Not initdone Then 
@@ -1274,13 +1476,23 @@ Public Sub Form_Open()
     aligned = True
   Endif
   Global.Center(Fmain, Me)
+  
+  
+  '   'removeme
+  ' global.init()
+  ' Me.Maximized = True
+  ' Wait
+  ' tabstrip1.index = 1
+  ' TabStrip_filters_audio.index = 1
+  ' FMain.fullyloaded = True
+  ' '
+  
 End
 
 
 Public Sub Form_Show()
   If Not FMain.fullyloaded Then Return
   Form_Open()
-  GeneralOptions.EnableDisable_video_drivers_panels()
 End
 
 
@@ -1327,14 +1539,6 @@ End
   
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-Public Sub NOSAVELabel1_MouseUp()
-  GeneralOptions.Show
-  GeneralOptions.TabStrip1.index = Global.TabIndexByName(("Video"), GeneralOptions.TabStrip1)
-End
-
-
-
-
 Private Sub AlignObjects()
   Dim containers As New Object[]
   Dim align_objs As New Object[]
@@ -1348,12 +1552,14 @@ Private Sub AlignObjects()
   containers.Add(GLScrollView)
   containers.Add(VdPauScrollView)
   containers.Add(VaapiScrollview)
-  containers.Add(CustomVideoScrollview)
+  
 
   containers.Add(AlsaScrollview)
   containers.Add(jackScrollview)
   containers.Add(pulseScrollview)
   containers.Add(pcmscrollview)
+  containers.Add(vboxacompressor)
+
   
     'find the width of an empty checkbox
   alabel = New Label(zzzfake)
@@ -1370,7 +1576,6 @@ Private Sub AlignObjects()
   alabel.delete
 
   For Each acontainer In containers
-   
     max_obj_w = 0
     align_objs.clear
     For Each aBox In acontainer.children
@@ -1395,6 +1600,8 @@ Private Sub AlignObjects()
 
     'align labels
     For Each child In align_objs
+      'If child.parent.parent = vboxacompressor Then Stop
+      'Debug child.parent.name
       Object.SetProperty(child, "autoresize", False)
       Object.SetProperty(child, "w", max_obj_w)
     Next
@@ -1407,14 +1614,15 @@ End
 'from the old xvonfigure*driver
 
 
-Public Function parse_audio_driver(driver_name As String, aTabstrip As Tabstrip) As String
+Public Function parse_audio_driver(driver_name As String, aTabstrip As Tabstrip) As MpvOption[]
   Dim obj, child, container_obj As Object
   Dim tab_index_old As Integer = aTabstrip.index
-  Dim outline As String
   Dim sep As String = Chr(126)
-  If Lower(driver_name) Like "custom*" Then
-    Return TextBox5customaudio.text
-  Endif
+  Dim outline As String
+  Dim ao_option_name As String
+  Dim ao_option_value As String
+  Dim return_opts As New MpvOption[]
+
 
   aTabstrip.index = 0
   While Lower(aTabstrip.Caption) <> driver_name
@@ -1427,45 +1635,40 @@ Public Function parse_audio_driver(driver_name As String, aTabstrip As Tabstrip)
 
   If aTabstrip.Children.count = 0 Then 
     global.mydebug("aTabstrip.Children.count is actually 0 (?), could not parse audio driver.")
-    Return ""
+    Return Null
   Endif
   If aTabstrip.Children[0] Is Scrollview Then 
     container_obj = aTabstrip.Children[0]
       Else
     container_obj = aTabstrip
   Endif
-  
+
   For Each obj In container_obj.Children
     If Upper(obj.name) Like Upper(driver_name) & "*" Then
       For Each child In obj.Children
-        'IF child.name LIKE "*Chk" THEN 
         If object.type(child) = "CheckBox" Then
           If child.value Then
-              outline = outline & child.tag
-                If (child.next <> Null) Then
-                  If (object.type(child.next) = "ComboBox") Or (object.type(child.next) = "SpinBox") Or (object.type(child.next) = "TextBox") Then
-                    If child.NEXT.text Like "*" & sep & "*" Then
-                      outline = outline & Split(child.NEXT.text, sep)[0]
-                        Else
-                      outline = outline & child.NEXT.text
-                    Endif
-                  Endif
+            ao_option_name = child.tag
+            Try Object.IsValid(child.next)
+            If Not Error Then
+              If (object.type(child.next) = "ComboBox") Or (object.type(child.next) = "SpinBox") Or (object.type(child.next) = "TextBox") Then
+                If child.NEXT.text Like "*" & sep & "*" Then
+                  ao_option_value = Split(child.NEXT.text, sep)[0]
+                    Else
+                  ao_option_value = child.NEXT.text
                 Endif
-                outline = outline & ":"
+              Endif
+            Endif
+            return_opts.Add(newopt(ao_option_name, ao_option_value))
+            ao_option_value = ""
+            ao_option_name = ""   
           Endif
         Endif
       Next
     Endif
   Next
-
   aTabstrip.index = tab_index_old
-  If Right(outline) = ":" Then outline = Left(outline, -1)
-  If Right(outline) = "" Then 
-    Return driver_name
-      Else
-    Return driver_name & ":" & outline 
-  Endif
-
+  Return return_opts    
 End
 
 
@@ -1475,57 +1678,17 @@ Public Sub PcmFileOpen_Click()
     TextBox8pcm.text = "\"" & myDialog.Path & "\""
 End
 
-Public Sub GetAlsaDevices() As String[]
-  Dim acard, acardid, acardname, apcm, apcminfo, apcminfos, apcmid As String
-  Dim adevices As New String[]
-  Dim apcms As New String[]
-  Dim acards As New String[]
-  Dim sep As String = Chr(126)
-  adevices.Add("plug:dmix" & " " & sep & " " & "(" & ("Default device, software mixing") & ")")
-  adevices.Add("default" & " " & sep & " " & "(" & ("Default alsa device") & ")")
-  adevices.Add("spdif" & " " & sep & " " & "(" & ("Default S/PDIF device") & ")")
-  adevices.Add("hdmi" & " " & sep & " " & "(" & ("Default hdmi device") & ")")
-  Try acards = Dir("/proc/asound/", "card*", gb.directory)
-  If Not Error Then
-    For Each acard In acards
-      Try acardname = Trim(File.Load("/proc/asound/" & acard & "/id"))
-      If Error Then acardname = "Unknown Card"
-      acardid = Replace(acard, "card", "")
-      Try apcms = Dir("/proc/asound/" & acard, "pcm*p").Sort(gb.Ascent)
-      If Not Error Then
-        For Each apcm In apcms
-          Try apcminfos = Trim(File.Load("/proc/asound/" & acard & "/" & apcm & "/info"))
-          If Error Then apcminfos = "name: No pcm info"
-          For Each apcminfo In Split(apcminfos, "\n", "", True)
-            If apcminfo Like "name: *" Then
-              apcminfo = Trim(Split(apcminfo, ":", "", True)[1])
-              apcmid = Replace(apcm, "pcm", "")
-              apcmid = Trim(Replace(apcmid, "p", ""))
-              Break
-            Endif
-          Next
-         ' global.myDebug( acardid, apcmid, acardname, apcminfo)
-          adevices.add("[plughw:" & acardid & "," & apcmid & "]" & " " & sep & " " & "(" & acardname & ":" & apcminfo & ")")
-        Next
-      Endif
-
-    Next
-  Endif
-  
- Return adevices
-  
-End
 
 
 
-Public Function parse_video_driver(driver_name As String, aTabstrip As Tabstrip) As String
+
+Public Function parse_video_driver(driver_name As String, aTabstrip As Tabstrip) As MpvOption[]
   Dim obj, child, container_obj As Object
   Dim tab_index_old As Integer = aTabstrip.index
   Dim outline As String
-  
-  If Lower(driver_name) Like "custom*" Then
-    Return TextBox5cv.text
-  Endif
+  Dim return_opts As New MpvOption[]
+  Dim vo_option_name As String
+  Dim vo_option_value As String
 
   aTabstrip.index = 0
   While Lower(aTabstrip.Caption) <> driver_name
@@ -1548,19 +1711,22 @@ Public Function parse_video_driver(driver_name As String, aTabstrip As Tabstrip)
         For Each child In obj.Children
           'IF child.name LIKE "*Chk" THEN 
           If object.type(child) = "CheckBox" Then
-            If child.value Then
-                outline = outline & child.tag
-                  If (child.next <> Null) Then
+            If child.value = CheckBox.true Then
+                vo_option_name = child.tag
+                Try Object.IsValid(child.next)
+                  If Not Error Then
                     If (object.type(child.next) = "ComboBox") Or (object.type(child.next) = "SpinBox") Or (object.type(child.next) = "TextBox") Then
                       If (object.type(child.next) = "ComboBox") Then
-                        Try outline = outline & Split(child.NEXT.text, " ")[0]
+                        vo_option_value = Split(child.NEXT.text, " ")[0]
                           Else
-                        Try outline = outline & child.NEXT.text
+                        vo_option_value = child.NEXT.text
                         If Error Then global.myDebug("an error occurred, please report this message and what you're doing")
                       Endif
                     Endif
                   Endif
-                  outline = outline & ":"
+                  return_opts.Add(newopt(vo_option_name, vo_option_value))
+                  vo_option_value = ""
+                  vo_option_name = ""
             Endif
           Endif
         Next
@@ -1569,13 +1735,7 @@ Public Function parse_video_driver(driver_name As String, aTabstrip As Tabstrip)
   Endif
   
   aTabstrip.index = tab_index_old
-  If Right(outline) = ":" Then outline = Left(outline, -1)
-  If Right(outline) = "" Then 
-    Return driver_name
-      Else
-    Return driver_name & ":" & outline 
-  Endif
-
+  Return return_opts    
 End
 
 
@@ -1584,46 +1744,723 @@ Public Sub xvScrollview_Arrange()
   TextBoxAdaptorsxv.text = ("Adaptors list:\n---------------------------------\n") & TextBoxAdaptorsxv.text
 End
 
-Public Sub CheckBox2gl_Click()
-  If Last.value Then CheckBox3gl.value = False
-End
 
-Public Sub CheckBox3gl_Click()
-  If Last.value Then CheckBox2gl.value = False
-End
+Public Sub Button2_Click()
+  Dim hqvalue As New Collection
+  Dim opt, value As String
+  Dim obj As Object
 
-
-Private GotAlsaDevices As Boolean = False
-Public Sub AlsaDeviceTextBox_Enter()
-  Dim adevice As String 
-  Dim prevtext As String = Last.text
-  If GotAlsaDevices Then Return
-  For Each adevice In GetAlsaDevices()
-    AlsaDeviceTextBox.Add(adevice)
-  Next
-  If AlsaDeviceTextBox.find(prevtext) = -1 Then AlsaDeviceTextBox.Add(prevtext, 0)
-  GotAlsaDevices = True
-  AlsaDeviceTextBox.text = prevtext
-End
-
-
-Public Sub Button1_Click()
-  Dim oglopts, oglopt As String
-  If combooglopts.count = 0 Then
-    Shell FMain.mplayer.executable() & " -vo opengl:help" To oglopts
-    If Trim(oglopts) = "" Then Return
-    If Error Then Return
-    For Each oglopt In Split(oglopts, "\n", "", True)
-      combooglopts.add(oglopt)
+  Application.busy = 1
+  hqvalue["scale"] = "spline36"
+  hqvalue["cscale"] = "spline36"
+  hqvalue["dscale"] = "mitchell"
+  hqvalue["dither-depth"] = "auto"
+  hqvalue["correct-downscaling"] = "yes"
+  hqvalue["sigmoid-upscaling"] = "yes"
+  hqvalue["deband"] = "yes"
+  For Each value In hqvalue
+    opt = hqvalue.key
+    'find the relevant widget and set it
+    For Each obj In Me.Controls
+      If TypeOf(obj.tag) = gb.String Then
+        If obj.tag = opt Then
+          If obj Is CheckBox Then
+            If obj.next <> Null Then
+              obj.value = CheckBox.True
+              Try obj.next.text = value
+              If Error Then Try obj.next.value = value
+              If Error Then 
+                obj.value = CheckBox.false
+                global.myDebug("could not set object because object.next is not settable")
+              Endif
+            Endif
+          Endif
+        Endif
+      Endif
     Next
-  Endif
-  combooglopts.Popup
+  Next
+  Application.busy = 0
 End
 
-Public Sub ComboOglOpts_Click()
-  Dim opt As String = Split(combooglopts.Current.Text, " ", "", True)[0] & "="
-  If Trim(OglAddOptsTextbox.text) <> "" Then 
-    If Right(OglAddOptsTextbox.text) <> ":" Then opt = ":" & opt
-  Endif
-  OglAddOptsTextbox.text &= opt
+
+Private dynaobj_prev_value As Boolean = False
+
+Public Sub dynaobj_MouseDown()
+   Try dynaobj_prev_value = Last.value
 End
+' 
+Public Sub dynaobj_mouseup()
+  Dim current_value As String
+  Try current_value = Last.value
+  If current_value <> dynaobj_prev_value Then 
+    Try timer_dynaobj_delayed_change.delay = 100
+    If Error Then
+      timer_dynaobj_delayed_change = New Timer As "timer_dynaobj_delayed_change" 'initialize timer if needed
+      timer_dynaobj_delayed_change.delay = 100
+      timer_dynaobj_delayed_change.trigger
+        Else
+      timer_dynaobj_delayed_change.trigger
+    Endif
+  Endif
+End
+
+' Public Sub dynaobj_click()
+' 
+'   If Last Is Combobox Then
+'     'readonly comboboxes only raises click() event, not change
+'     If Last.readonly Then ApplyBTN_Click()
+'   Endif
+' End
+
+
+
+Public timer_dynaobj_delayed_change As Timer
+
+Public Sub dynaobj_change()
+  Dim initial_value, current_value As String
+
+  'there is no need to apply anything if the user did not just changed it
+  If Not Me.visible Then Return
+  If RealTimeCHK.value = CheckBox.false Then Return
+  If Not FMain.mplayer.ProcessRunningOvr() Then Return
+  
+  'trigger a new timer to check if the changed value is stable
+  'we use a timer to keep the gui responsive
+  Try timer_dynaobj_delayed_change.delay = 200
+  If Error Then
+    timer_dynaobj_delayed_change = New Timer As "timer_dynaobj_delayed_change" 'initialize timer if needed
+    timer_dynaobj_delayed_change.delay = 200
+    timer_dynaobj_delayed_change.Stop
+    timer_dynaobj_delayed_change.start
+      Else
+    timer_dynaobj_delayed_change.Stop
+    timer_dynaobj_delayed_change.start
+  Endif
+End
+' 
+Public Sub dynaobj_click()
+  If Last Is Combobox Then
+    If Last.readonly Then
+      ApplyBTN_Click()
+    Endif
+  Endif
+End
+
+Public Sub timer_dynaobj_delayed_change_Timer()
+  timer_dynaobj_delayed_change.stop
+  'If dynaobj_mouse_is_down Then Return
+  ApplyBTN_Click()
+End
+
+
+
+'------------------------------------------------------------------ MANAGE ANEQUALIZER
+Private tempdir As String
+Public delay_graph_timer As Timer
+Public mpveq As MplayerClass 
+Public mpveq_instanced As Boolean = False
+
+Public Sub switchers_Click()
+  Dim child As Object
+  Dim band_enabled As Boolean = False
+  'is at least a band enabled?
+  If Not (SwitchButton2.Value Or SwitchButton1.Value Or switchbutton3.Value Or switchbutton4.Value Or switchbutton5.Value Or switchbutton6.Value) Then
+    picturebox1.Picture = Null
+    dynaobj_change()
+    DrawGraph_part2()
+    Return
+  Endif
+  EqControls_Change()
+End
+
+
+
+Public Sub mpveq_mykill(retcode As Integer, init_ok As Boolean, Optional fullpath As String, Optional percent As String)
+ DrawGraph_part2()
+End
+
+Public Sub DrawGraph_part2()
+ Dim picfile As String
+  Dim img As Image
+  Dim img_graph As Image
+  Dim text_h, text_w As Integer
+  Dim c As Object = picturebox1
+  Dim colors As New Integer[]
+  Dim steps As New Float[]
+  Dim p As PaintBrush
+  Dim mpveq_is_running As Boolean = False
+  Dim shadowsize As Integer
+  Dim line_color As Integer = Color.RGB(40, 120, 190)
+  'Dim back_color As Integer = Color.RGB(230, 239, 119)
+  Dim back_color As Integer = Color.RGB(0, 12, 25)
+  'Dim line_color As Integer = Color.RGB(65, 65, 0)
+  Dim Light_color As Integer = Color.SetAlpha(Color.white, 190)
+  
+  colors = [Color.SetAlpha(Color.black, 128), Color.Transparent]
+  steps = [0, 1]
+
+  If Object.IsValid(mpveq) Then
+    If mpveq.ProcessRunningOvr() Then Return
+  Endif
+  
+ 
+    img = New Image(picturebox1.w, picturebox1.h, back_color)
+    Paint.Begin(img)
+      'light
+      Paint.brush = Paint.RadialGradient(img.w Div 2, -(img.w Div 2), img.w, img.w Div 2, 0, [Light_color, Color.transparent], [0, 1], 1000)
+      Paint.Rectangle(0, 0, img.w, img.h)
+      Paint.fill
+      shadowsize = Min(img.h, img.w) Div 80
+      'top shade
+      Paint.brush = Paint.LinearGradient(0, 0, 0, shadowsize, colors, steps)
+      Paint.Rectangle(0, 0, img.w, shadowsize)
+      Paint.fill
+      'bottom shade
+      Paint.brush = Paint.LinearGradient(0, img.h - shadowsize, 0, img.h, colors.Reverse(), steps)
+      Paint.Rectangle(0, img.h - shadowsize, img.w, shadowsize)  
+      Paint.fill  
+      'right shade
+      Paint.brush = Paint.LinearGradient(img.w - shadowsize, 0, img.w, 0, colors, steps)
+      Paint.Rectangle(img.w - shadowsize, 0, shadowsize, img.h)
+      Paint.fill
+      'left shade
+      Paint.brush = Paint.LinearGradient(0, 0, shadowsize, 0, colors.reverse(), steps)
+      Paint.Rectangle(0, 0, shadowsize, img.h)
+      Paint.fill      
+    Paint.end
+ 
+    paint_freq_line("20Hz", 5, img, line_color)
+    paint_freq_line("100Hz", 20, img, line_color)
+    paint_freq_line("500Hz", 43.9, img, line_color)
+    paint_freq_line("1Khz", 54.07, img, line_color)
+    paint_freq_line("10Khz", 88.5, img, line_color)
+    paint_freq_line("20Khz", 98.6, img, line_color)
+
+    paint_db_line(-24, img, line_color)
+    paint_db_line(-12, img, line_color)
+    paint_db_line(-6, img, line_color)
+    paint_db_line(0, img, line_color)
+    paint_db_line(6, img, line_color)
+    paint_db_line(12, img, line_color)
+    paint_db_line(24, img, line_color)
+
+    Try picfile = tempdir & "/" & Dir(tempdir)[0]
+    Try img_graph = Image.Load(picfile).Opacity(0.7)
+    Try img_graph = img_graph.Stretch(picturebox1.w, img_graph.h)
+    If img_graph <> Null Then
+      Paint.Begin(img_graph)
+        Paint.operator = Paint.OperatorAdd
+        Paint.DrawImage(img, 0, 0)
+      Paint.end
+      picturebox1.picture = img_graph.picture
+        Else
+      picturebox1.picture = img.picture
+    Endif
+
+  Try Kill picfile
+End
+
+
+Private Sub paint_freq_line(Hz As String, percent As Float, c As Image, col As Integer)
+  Dim x As Integer = p(percent, c.w)
+  Dim th, tw As Integer
+    Paint.Begin(c)
+      Paint.brush = Paint.color(Color.SetAlpha(Col, 210))
+      Paint.LineWidth = 1
+      Paint.antialias = False
+      Paint.MoveTo(x, 0)
+      Paint.LineTo(x, c.h)
+      Paint.stroke
+      'text
+      Paint.Font.Size = Me.Font.size - 2
+      th = Paint.TextSize(Hz).H
+      tw = Paint.TextSize(Hz).w   
+      Paint.brush = Paint.color(Col)
+      Paint.DrawText(Hz, x - tw - p(0.5, c.w), c.h - 5)
+      Paint.stroke
+    Paint.end
+End
+
+Private Sub paint_dB_line(dB As Integer, c As Image, col As Integer)
+  Dim th, tw As Integer
+  Dim maxdB As Integer = 30 '-30...+30
+  '1000/60*(30+-30)
+  Dim y As Integer = (c.h / (MaxdB * 2)) * (maxdB + dB)
+  Paint.Begin(c)
+    Paint.Font.Size = Me.Font.size - 2
+    Paint.brush = Paint.color(Color.SetAlpha(Col, 210))
+    Paint.LineWidth = 1
+    Paint.antialias = False
+    Paint.MoveTo(0, y)
+    Paint.LineTo(c.w, y)
+    Paint.stroke
+    Paint.brush = Paint.color(Col)
+    db = -db
+    th = Paint.TextSize(db & "dB").H
+    tw = Paint.TextSize(db & "dB").w
+    Paint.DrawText(dB & "dB", c.w - tw - 10, y - 5)
+  Paint.stroke
+  Paint.end
+End
+
+
+
+Private Function p(percent As Float, v As Integer) As Integer
+  Return CInt((v * percent) / 100)
+End
+
+
+Public Function parse_compand() As String
+  Dim v As Integer
+  Dim k, d As Float
+  Dim out As String
+  v = makeupgainspinbox.Value
+  k = softkneespinbox.Value
+  d = decayspinbox.value / 10
+  
+  If k = 0 Then k = k + 0.1
+  If d = 0 Then d = d + 0.1
+  
+  ' out = "@label_compand:lavfi=[volume=" & v & "dB],"
+  ' out &= "\"lavfi=[compand=attacks=0"
+  ' out &= ":decays=" & d 
+  ' out &= ":soft-knee=" & k
+  ' out &= ":points=0/-0.1|1000/-0.1]\""
+        ' out = "@label_compand:\"lavfi=[volume=" & v & "dB,"
+        ' out &= "compand=attacks=0"
+        ' out &= ":decays=" & d 
+        ' out &= ":soft-knee=" & k
+        ' out &= ":points=0/-0.1|1000/-0.1]\""
+        
+  out &= "@label_compand:lavfi=[volume=" & v & "dB,compand=attacks=0"
+  out &= ":decays=" & d 
+  out &= ":delay=0.03" 'anti-clip
+  out &= ":soft-knee=" & k
+  out &= ":points=0/-0.1'|'1000/-0.1]"
+
+  Return out
+End
+
+
+Private graph_w As Integer = 840 'this values allow mark lines to stay in "sync" with ffmpeg graph values
+
+Public Function eqstring(Optional complex As Boolean = True, Optional ByRef autogaindB As Float) As String
+  Dim band_containers As New Object[]
+  Dim band_container, subobj As Object
+  Dim f, g, w, out_band, outstring As String
+  Dim out_bands As New String[]
+  Dim i As Integer
+  Dim maxgain As Integer = 0
+  
+  band_containers.Add(frameband1)
+  band_containers.Add(frameband2)
+  band_containers.Add(frameband3)
+  band_containers.Add(frameband4)
+  band_containers.Add(frameband5)
+  band_containers.Add(frameband6)
+  For Each band_container In band_containers
+    For Each subobj In band_container.children
+      If subobj Is SwitchButton Then
+        If subobj.value = True Then
+          f = subobj.next.children[1].value
+          g = subobj.next.next.children[1].value
+          w = subobj.next.next.next.children[1].value
+          out_bands.Add("f=" & f & " w=" & w & " g=" & g & " t=0")
+          maxgain = Max(CInt(g), maxgain)
+        Endif
+      Endif
+    Next
+  Next
+  autogaindB = maxgain
+  If out_bands.Count = 0 Then Return ""
+  If complex Then outstring = "[aid1]anequalizer="
+  'Pretend we have 10 channels audio (unused channels should be discarded by anequalizer)
+  For i = 0 To 9
+    For Each out_band In out_bands
+      outstring &= "c" & i & " " & out_band & "|"
+    Next 'out_band
+  Next 'i
+  outstring = Left(outstring, -1)
+  'debug picturebox1.h
+  'If complex Then outstring &= ":\"curves=true:colors='transparent|white':fscale=1:size=" & picturebox1.w & "x" & picturebox1.h & ":mgain=30\"[v1][vo]"
+  'If complex Then outstring &= ":\"curves=true:fscale=1:size=" & picturebox1.w & "x" & picturebox1.h & ":mgain=30\"[v1][vo]"
+  If complex Then outstring &= ":\"curves=true:fscale=1:size=" & graph_w & "x" & picturebox1.h & ":mgain=30\"[ao][vo]"
+  If CheckBox_autogain_anequalizer.Value = CheckBox.false Then autogaindB = 0
+  Return outstring
+End
+
+Public Sub DrawGraph()
+  Dim eq_string As String
+
+  tempdir = Global.tmpdir & "/anequalizer"
+  If Not Exist(tempdir) Then 
+    Try Mkdir tempdir
+    If Error Then Return
+  Endif
+  
+  If Not mpveq_instanced Then 
+    mpveq = New MplayerClass As "mpveq"
+    mpveq_instanced = True
+  Endif
+
+  eq_string = eqstring()
+  If eq_string <> "" Then
+    mpveq.mpvoptions["lavfi-complex"] = "\"" & eqstring() & "\""
+    mpveq.mpvoptions["vo"] = "image"
+    mpveq.mpvoptions["ao"] = "null"
+    mpveq.mpvoptions["vo-image-format"] = "png"
+    mpveq.mpvoptions["vo-image-outdir"] = tempdir
+    mpveq.mpvoptions["frames"] = "1"
+    mpveq.do_play("av://lavfi:anullsrc")
+      Else
+    DrawGraph_part2()
+  Endif
+End
+
+
+Public Sub delay_graph_timer_timer() 
+  delay_graph_timer.stop
+  DrawGraph()
+End
+
+
+Public Sub EqControls_Change()
+  If Not FMain.FullyLoaded Then Return
+  If Not Me.visible Then Return
+  If Not TabStrip_filters_audio.caption = "anequalizer" Then Return
+  dynaobj_change()
+  start_delay_graph_timer()
+End
+
+Public Sub CheckBox_autogain_anequalizer_Click()
+  If Not FMain.FullyLoaded Then Return
+  If Not Me.visible Then Return
+  If Not TabStrip_filters_audio.caption = "anequalizer" Then Return
+  dynaobj_change()
+End
+
+Private Sub start_delay_graph_timer(Optional force As Boolean = False)
+
+  If Not force Then 
+    If Not FMain.FullyLoaded Then Return
+    If Not Me.visible Then Return
+    If TabStrip_filters_audio.text <> "anequalizer" Then Return
+  Endif
+
+   Try delay_graph_timer.delay = 100
+    If Error Then
+      delay_graph_timer = New Timer As "delay_graph_timer" 'initialize the timer if needed
+      delay_graph_timer.delay = 100
+        Else
+      delay_graph_timer.stop 'stop the 
+    Endif
+    delay_graph_timer.start
+End
+
+
+
+Private last_hbox2_w As Integer = -1
+Public Sub AnEqualizerPanel_Arrange()
+  Dim firstchild, lastchild As Object
+
+  If Not FMain.FullyLoaded Then Return
+  If Not Me.visible Then Return
+  If TabStrip_filters_audio.text <> "anequalizer" Then Return
+
+  'DrawGraph_part2()
+  start_delay_graph_timer()
+    
+  firstchild = HBox2.Children[1]
+  lastchild = HBox2.Children[HBox2.Children.count - 1]
+  
+  aneqleftspacer.w = 1
+  aneqleftspacer.w = (AnEqualizerPanel.w - (lastchild.x + lastchild.w - firstchild.x)) Div 2
+
+End
+
+'-END MANAGE ANEQUALIZER------------------------------------------------------------------------------------------
+
+
+
+Public Sub Button_compand_autovalues_Click()
+  update_compand()
+End
+
+Public Sub VBox2_Arrange()
+  If Not FMain.fullyloaded Then Return
+  update_compand()
+End
+
+Public Sub update_compand()
+  hboxsoftknee.Enabled = (Button_compand_autovalues.value = False)
+  hboxdecay.enabled = (Button_compand_autovalues.value = False)
+
+  If Button_compand_autovalues.value = True Then
+    softkneespinbox.value = makeupgainspinbox.value Div 2
+    decayspinbox.value = (makeupgainspinbox.value * 1000)
+  Endif
+End
+
+
+Public Sub compand_dynaobj_Change()
+  update_compand()
+  dynaobj_change()
+End
+
+
+
+Public Sub acompressor_dynaobj_Change()
+  update_acompressor()
+  dynaobj_change()
+End
+
+Public Sub update_acompressor()
+  Dim MakeupdB, threshold, ratio, attack, release, knee As Integer
+  
+  boxacompressor1.Enabled = (Button_acompressor_autovalues.value = False)
+  boxacompressor2.Enabled = (Button_acompressor_autovalues.value = False)
+  boxacompressor3.Enabled = (Button_acompressor_autovalues.value = False)
+  boxacompressor4.Enabled = (Button_acompressor_autovalues.value = False)
+  boxacompressor5.Enabled = (Button_acompressor_autovalues.value = False)
+  boxacompressor6.Enabled = (Button_acompressor_autovalues.value = False)
+  boxacompressor7.Enabled = (Button_acompressor_autovalues.value = False)
+
+  If Button_acompressor_autovalues.value = True Then
+    Makeupdb = makeupgainspinbox2.text
+    thresholdspinbox.value = -(Makeupdb + 3) '(+3 is to anticlip)
+    ratiospinbox.value = 20
+    attackspinbox.value = 0
+    releasespinbox.value = CInt(Min(90, (makeupdb * 2)))
+    kneespinbox.value = Min(8, makeupdb Div 4)
+    linkcombobox.text = "maximum"
+    detectioncombobox.text = "rms"
+  Endif
+
+End
+    
+Public Sub Button_acompressor_autovalues_Click()
+  update_acompressor()
+End
+
+Private Function dB2K(dB As Float) As Float
+  Return 10 ^ (dB / 20)
+End
+
+Private Function inrange(x As Float, fMin As Float, fMax As Float) As Float
+  If x < fMin Then Return fMin
+  If x > fMax Then Return fMax
+  Return x
+End
+
+
+Private Function parse_acompressor() As String
+  Dim out As String
+  Dim threshold, attack, release As Float
+  Dim ratio, makeup, knee As Integer
+  Dim slink, detection As String
+  
+  'level_in = dB2K(makeupgainspinbox2.value)
+  makeup = dB2K(makeupgainspinbox2.value)
+  threshold = dB2K(thresholdspinbox.value)
+  attack = attackspinbox.value * 10
+  release = releasespinbox.value * 100
+  ratio = ratiospinbox.value
+  knee = kneespinbox.value
+  sLink = linkcombobox.text
+  detection = detectioncombobox.text
+
+  'level_in = inrange(level_in, 0.015625, 64)
+  makeup = inrange(makeup, 1, 64)
+  threshold = inrange(threshold, 0.00097563, 1)
+  ratio = inrange(ratio, 1, 20)
+  attack = inrange(attack, 0.01, 2000)
+  release = inrange(release, 0.01, 9000)
+  knee = inrange(knee, 1, 8)
+
+  
+  out = "@label_acompressor:lavfi=[acompressor="
+  'out &= "level_in=" & level_in & ":"
+  out &= "makeup=" & makeup & ":"
+  out &= "threshold=" & threshold & ":"
+  out &= "ratio=" & ratio & ":"
+  out &= "attack=" & attack & ":"
+  out &= "release=" & release & ":"
+  out &= "knee=" & knee & ":"
+  out &= "link=" & sLink & ":"
+  out &= "detection=" & detection
+  out &= "]"
+  Return out
+End
+
+
+
+Public Sub ApplyBTN_DblClick()
+  If Not FMain.mplayer.ProcessRunningOvr() Then Return
+  If MyQuestion.Ask(("Do you want to restart the player process?"), ("Yes"), ("No")) = 1 Then
+    FMain.Apply(True)
+      Else 
+    FMain.Apply(False)
+  Endif
+End
+
+
+' START SUPEREQUALIZER **********************************************************************************************************************
+Private Function parsed_superequalizer(ByRef max_gain As Float) As String
+  Dim slidercontainer As Panel
+  Dim myslider As Slider
+  Dim gain As Float
+  Dim outstr As String
+  
+  If Not seq_already_setup Then superequalizer_setup()
+  
+  max_gain = 0
+  For Each slidercontainer In seqcontainer.Children
+    myslider = slidercontainer.Children[1]
+    gain = myslider.Value / 10
+    If gain > max_gain Then max_gain = gain
+    
+    outstr &= slidercontainer.Tag & "=" & Replace(Str(gain), ",", ".") & "dB:"
+  Next
+  outstr = Left(outstr, Len(outstr) - 1)
+  If CheckBox_autogain_superequalizer.value = CheckBox.false Then max_gain = 0
+  outstr = "superequalizer=" & outstr
+  Debug outstr
+  Return outstr
+End
+
+
+Public Sub seqslider_Change()
+  Dim mycombo As ComboBox
+  Dim myslider As Slider
+  Dim myvalue As String
+  mycombo = Last.next
+  myslider = Last
+  Object.Lock(mycombo)
+  myvalue = myslider.value / 10
+  If InStr(myvalue, ".") = "0" Then myvalue &= ".0"
+  mycombo.Index = mycombo.Find(myvalue)
+  Object.unlock(mycombo)
+  
+  If Not FMain.FullyLoaded Then Return
+  If Not Me.visible Then Return
+  If Not TabStrip_filters_audio.caption = "superequalizer" Then Return
+  dynaobj_change()  
+End
+
+Public Sub PresetCombobox_click()
+  Dim slidercontainer As Panel
+  Dim myslider As Slider
+  Dim mycombo As Combobox
+  Dim preset As New Integer[]
+  Dim myvalue As String
+  Dim i As Integer
+
+  If Not FMain.FullyLoaded Then Return
+  If Not Me.visible Then Return
+  If Not TabStrip_filters_audio.caption = "superequalizer" Then Return
+  
+  i = 0
+  Try preset = presets[Last.text]
+  If Error Then Return
+  If Preset = Null Then Return
+  
+  For Each slidercontainer In seqcontainer.children
+    myslider = slidercontainer.Children[1]
+    mycombo = slidercontainer.Children[2]
+    Object.Lock(myslider)
+    Object.Lock(mycombo)
+    myslider.Value = preset[i]
+    myvalue = myslider.value / 10
+    If InStr(myvalue, ".") = "0" Then myvalue &= ".0"
+    mycombo.Index = mycombo.Find(myvalue)
+    i += 1
+    Object.unLock(myslider)
+    Object.unLock(mycombo)
+  Next
+  dynaobj_change()  
+
+End
+
+Public Sub seqcombo_Change()
+  Dim mycombo As ComboBox
+  Dim myslider As Slider
+  Dim myvalue As String
+  mycombo = Last
+  myslider = Last.previous
+  Object.Lock(myslider)
+  Try myslider.Value = mycombo.text * 10
+  Object.unlock(myslider)
+  
+  If Not FMain.FullyLoaded Then Return
+  If Not Me.visible Then Return
+  If Not TabStrip_filters_audio.caption = "superequalizer" Then Return
+  dynaobj_change()  
+End
+
+Private seq_already_setup As Boolean = False
+Public Sub seqcontainer_Arrange()
+  If Not seq_already_setup Then 
+    superequalizer_setup()
+  Endif
+End
+
+Private presets As Collection
+
+Private Sub superequalizer_setup()
+  Dim slidercontainer As Panel
+  Dim sliderlabel As Label
+  Dim i As Integer = 0
+  Dim bands As Array = ["65", "92", "131", "185", "262", "370", "523", "740", "1040", "1480", "2093", "2960", "4186", "5920", "8372", "11840", "16744", "20000"]
+  Dim tmp As String
+  Dim tmp2 As String
+  presets = New Collection
+
+  Object.Lock(PresetCombobox)
+
+  PresetCombobox.Add("Flat")
+  presets["Flat"] = ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"]
+
+  PresetCombobox.Add("Loudness 3.4dB")
+  presets["Loudness 3.4dB"] = ["34", "23", "13", "5", "-1", "-7", "-13", "-16", "-20", "-20", "-26", "-29", "-35", "-31", "-20", "-13", "-6", "-3"]
+   
+  PresetCombobox.Add("Loudness 5.1dB")
+  presets["Loudness 5.1dB"] = ["51", "35", "19", "7", "-2", "-11", "-19", "-24", "-30", "-30", "-39", "-44", "-52", "-47", "-30", "-19", "-9", "-4"]
+
+  PresetCombobox.Add("Loudness 6.8dB")
+  presets["Loudness 6.8dB"] = ["68", "47", "26", "10", "-03", "-15", "-26", "-32", "-41", "-41", "-52", "-59", "-70", "-63", "-40", "-26", "-13", "-06"]
+  
+  PresetCombobox.Add("Clear voice")
+  presets["Clear voice"] = ["00", "00", "00", "-05", "-24", "-35", "-25", "-09", "02", "18", "31", "35", "35", "31", "18", "00", "00", "00"]
+  
+
+  '   For i = 0 To 17
+  '     tmp = tmp & "\"" & CStr((CInt((presets["Loudness more"][i]) * 1) Div 2)) & "\","
+  '     tmp2 = tmp2 & "\"" & CStr((CInt(presets["Loudness"][i]) Div 4)) & "\","
+  '   Next
+  ' 
+  '   Print tmp
+  '   'Stop
+  ' i = 0
+  
+  Object.Unlock(PresetCombobox)
+  
+  For Each slidercontainer In seqcontainer.children
+    slidercontainer.Tag = Str(i + 1) & "b" '1b,2b,3b....18b
+    sliderlabel = slidercontainer.Children[0]
+    sliderlabel.Text = bands[i]
+    i += 1
+  Next
+  
+  seq_already_setup = True
+End
+
+
+'END SUPEREQUALIZER **********************************************************************************************************************
+
+Public Sub CheckBox_autogain_superequalizer_Click()
+  If Not FMain.FullyLoaded Then Return
+  If Not Me.visible Then Return
+  If Not TabStrip_filters_audio.caption = "superequalizer" Then Return
+  dynaobj_change()  
+End
+

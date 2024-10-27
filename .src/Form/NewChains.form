@@ -1,7 +1,7 @@
 # Gambas Form File 3.0
 
 { Form Form
-  MoveScaled(0,0,102,80)
+  MoveScaled(0,0,110,88)
   Text = ("Chains")
   Icon = Picture["icon:/small/connect"]
   Persistent = True
@@ -23,12 +23,24 @@
       Picture = Picture["icon:/16/save-as"]
     }
   }
+  { drivers_video_order TextBox
+    MoveScaled(40,0,18,4.5714)
+    Visible = False
+  }
   { filters_audio_order TextBox
-    MoveScaled(21,0,18,4)
+    MoveScaled(21,0,18,4.5714)
+    Visible = False
+  }
+  { filters_video_order TextBox
+    MoveScaled(1,0,18,4.5714)
+    Visible = False
+  }
+  { drivers_audio_order TextBox
+    MoveScaled(60,0,19,4.5714)
     Visible = False
   }
   { TabStrip1 TabStrip
-    MoveScaled(3,7,95,60)
+    MoveScaled(4,7,95,68)
     Expand = True
     Arrangement = Arrange.Horizontal
     Margin = True
@@ -42,19 +54,19 @@
       Arrangement = Arrange.Vertical
     }
     { TabStrip_filters_video TabStrip
-      MoveScaled(33,2,59,46)
+      MoveScaled(32,2,59,52)
       #Translate = False
       Expand = True
       Margin = True
       TextFont = Font["-1"]
       Index = 0
-      Text = "tabstrip1"
+      Text = "scale"
       { HelpBox Panel
-        MoveScaled(3,11,54,29)
+        MoveScaled(53,21,54,33)
         Tag = "0"
         Arrangement = Arrange.Vertical
         { Button_show_man ToggleButton
-          MoveScaled(1,2,51,4)
+          MoveScaled(1,2,51,4.5714)
           Text = ("Show man page")
           Picture = Picture["icon:/16/help"]
         }
@@ -73,253 +85,1312 @@
           Delay = 500
         }
       }
+      { vboxscale1 Panel
+        MoveScaled(0,1,52,44)
+        Arrangement = Arrange.Vertical
+        Spacing = True
+        Margin = True
+        { Hbox5 HBox
+          MoveScaled(1,1,51,6)
+          ToolTip = ("Select the desidered size, or:\n0 means disable width scaling\n-1 will calculate width from desidered height")
+          Padding = 6
+          { Label11 Label
+            MoveScaled(1,0,17,5)
+            Text = ("Width")
+          }
+          { scale_w SpinBox dynaobj
+            Name = "scale_w"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            MinValue = -1
+            MaxValue = 8192
+            Step = 4
+            Value = 1280
+          }
+        }
+        { Hbox4 HBox
+          MoveScaled(1,8,51,6)
+          ToolTip = ("Select the desidered size, or:\n0 means disable height scaling\n-1 will calculate height from desidered width")
+          Padding = 6
+          { Label10 Label
+            MoveScaled(1,0,17,5)
+            Text = ("Height")
+          }
+          { scale_h SpinBox dynaobj
+            Name = "scale_h"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            MinValue = -1
+            MaxValue = 8192
+            Step = 4
+            Value = -1
+          }
+        }
+        { Hbox6 HBox
+          MoveScaled(1,17,51,6)
+          ToolTip = ("Set the interlacing mode.")
+          Padding = 6
+          { Label37 Label
+            MoveScaled(1,0,17,5)
+            Text = ("Interlaced scaling")
+          }
+          { scale_i ComboBox dynaobj
+            Name = "scale_i"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            ReadOnly = True
+            List = [("0 - Do not apply interlaced scaling"), ("1 - Force interlaced aware scaling"), ("-1 - Automatic")]
+            Text = ("-1 - Automatic")
+          }
+        }
+        { Hbox7 HBox
+          MoveScaled(0,27,51,6)
+          ToolTip = ("Enable decreasing or increasing output video width or height if necessary to keep the original aspect ratio.")
+          Padding = 6
+          { Label38 Label
+            MoveScaled(1,0,26,5)
+            Text = ("Force original aspect ratio")
+          }
+          { scale_a ComboBox dynaobj
+            Name = "scale_a"
+            MoveScaled(34,0,16,5)
+            #Translate = False
+            Font = Font["Monospace"]
+            Expand = True
+            ReadOnly = True
+            List = ["disable", "decrease", "increase"]
+          }
+        }
+        { Hbox9 HBox
+          MoveScaled(0,35,51,6)
+          ToolTip = ("Choose if you want to allow upscaling and downscaling")
+          Padding = 6
+          { Label39 Label
+            MoveScaled(1,0,26,5)
+            Text = ("Permit Up/Downscaling")
+          }
+          { scale_ud ComboBox dynaobj
+            Name = "scale_ud"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            ReadOnly = True
+            List = [("0 - Allow both"), ("1 - Allow upscaling only"), ("2 - Allow Downscaling only")]
+          }
+        }
+      }
       Index = 0
     }
     Index = 1
     Text = ("Audio Filters")
     Picture = Picture["icon:/small/audio"]
+    { ButtonLadspaHelper Button
+      MoveScaled(1,55,14,4.5714)
+      Visible = False
+      ToolTip = ("Show a tool that helps you to compile ladspa filter parameters.\nIf you don't use ladspa, just don't push it.")
+      Text = ("Ladspa")
+      Picture = Picture["icon:/16/tools"]
+    }
     { filters_audio_container ScrollView
       MoveScaled(1,1,30,50)
       Background = Color.TextBackground
       Arrangement = Arrange.Vertical
     }
     { TabStrip_filters_audio TabStrip
-      MoveScaled(33,2,56,47)
+      MoveScaled(32,6,61,59)
       #Translate = False
       Expand = True
       Arrangement = Arrange.Fill
       Margin = True
+      Count = 4
       TextFont = Font["-1"]
       Index = 0
-      Text = "equalizer"
-      { ScrollView1xx Panel
-        MoveScaled(0,1,64,39)
+      Text = "anequalizer"
+      { AnEqualizerPanel Panel
+        MoveScaled(1,1,88,45)
         Expand = True
-        Arrangement = Arrange.Horizontal
+        Arrangement = Arrange.Vertical
+        Spacing = True
+        { PictureBox1 PictureBox
+          MoveScaled(1,1,84,11)
+          Background = Color.Black
+          Expand = True
+          Stretch = True
+        }
+        { HBox2 ScrollView
+          MoveScaled(3,11,53,25)
+          Arrangement = Arrange.Horizontal
+          Spacing = True
+          Margin = True
+          Border = False
+          { AneqLeftSpacer VBox
+            MoveScaled(2,1,1,23)
+          }
+          { FrameBand1 Panel
+            MoveScaled(18,-1,21,24)
+            Font = Font["-1"]
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            Spacing = True
+            Margin = True
+            Border = Border.Etched
+            { SwitchButton1 SwitchButton switchers
+              Name = "SwitchButton1"
+              MoveScaled(2,2,17,4)
+              Value = True
+            }
+            { Panel2 Panel
+              MoveScaled(2,7,17,4)
+              ToolTip = ("Center Frequency")
+              Arrangement = Arrange.Horizontal
+              { Label1 Label
+                MoveScaled(1,0,2,4)
+                Text = ("F")
+              }
+              { f1 SpinBox EqControls
+                Name = "f1"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Step = 10
+                Value = 60
+              }
+            }
+            { Panel3 Panel
+              MoveScaled(2,12,17,4)
+              ToolTip = ("Gain (dB)")
+              Arrangement = Arrange.Horizontal
+              { Label12 Label
+                MoveScaled(1,0,2,4)
+                Text = ("G")
+              }
+              { g1 SpinBox EqControls
+                Name = "g1"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = -30
+                MaxValue = 30
+              }
+            }
+            { Panel4 Panel
+              MoveScaled(2,17,17,4)
+              ToolTip = ("Filter width (Hz)")
+              Arrangement = Arrange.Horizontal
+              { Label13 Label
+                MoveScaled(1,0,2,4)
+                Text = ("W")
+              }
+              { w1 SpinBox EqControls
+                Name = "w1"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 125
+              }
+            }
+          }
+          { FrameBand2 Panel
+            MoveScaled(39,-1,21,24)
+            Font = Font["-1"]
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            Spacing = True
+            Margin = True
+            Border = Border.Etched
+            { SwitchButton2 SwitchButton switchers
+              Name = "SwitchButton2"
+              MoveScaled(2,2,17,4)
+              Value = True
+            }
+            { Panel5 Panel
+              MoveScaled(2,7,17,4)
+              ToolTip = ("Center Frequency")
+              Arrangement = Arrange.Horizontal
+              { Label19 Label
+                MoveScaled(1,0,2,4)
+                Text = ("F")
+              }
+              { f2 SpinBox EqControls
+                Name = "f2"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 500
+              }
+            }
+            { Panel6 Panel
+              MoveScaled(2,12,17,4)
+              ToolTip = ("Gain (dB)")
+              Arrangement = Arrange.Horizontal
+              { Label20 Label
+                MoveScaled(1,0,2,4)
+                Text = ("G")
+              }
+              { g2 SpinBox EqControls
+                Name = "g2"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = -30
+                MaxValue = 30
+              }
+            }
+            { Panel7 Panel
+              MoveScaled(2,17,17,4)
+              ToolTip = ("Filter width (Hz)")
+              Arrangement = Arrange.Horizontal
+              { Label21 Label
+                MoveScaled(1,0,2,4)
+                Text = ("W")
+              }
+              { w2 SpinBox EqControls
+                Name = "w2"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 250
+              }
+            }
+          }
+          { FrameBand3 Panel
+            MoveScaled(60,-1,21,24)
+            Font = Font["-1"]
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            Spacing = True
+            Margin = True
+            Border = Border.Etched
+            { SwitchButton3 SwitchButton switchers
+              Name = "SwitchButton3"
+              MoveScaled(2,2,17,4)
+              Value = True
+            }
+            { Panel8 Panel
+              MoveScaled(2,7,17,4)
+              ToolTip = ("Center Frequency")
+              Arrangement = Arrange.Horizontal
+              { Label22 Label
+                MoveScaled(1,0,2,4)
+                Text = ("F")
+              }
+              { f3 SpinBox EqControls
+                Name = "f3"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 1000
+              }
+            }
+            { Panel9 Panel
+              MoveScaled(2,12,17,4)
+              ToolTip = ("Gain (dB)")
+              Arrangement = Arrange.Horizontal
+              { Label23 Label
+                MoveScaled(1,0,2,4)
+                Text = ("G")
+              }
+              { g3 SpinBox EqControls
+                Name = "g3"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = -30
+                MaxValue = 30
+              }
+            }
+            { Panel10 Panel
+              MoveScaled(2,17,17,4)
+              ToolTip = ("Filter width (Hz)")
+              Arrangement = Arrange.Horizontal
+              { Label24 Label
+                MoveScaled(1,0,2,4)
+                Text = ("W")
+              }
+              { w3 SpinBox EqControls
+                Name = "w3"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 500
+              }
+            }
+          }
+          { FrameBand4 Panel
+            MoveScaled(81,0,21,24)
+            Font = Font["-1"]
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            Spacing = True
+            Margin = True
+            Border = Border.Etched
+            { SwitchButton4 SwitchButton switchers
+              Name = "SwitchButton4"
+              MoveScaled(2,2,17,4)
+              Value = True
+            }
+            { Panel11 Panel
+              MoveScaled(2,7,17,4)
+              ToolTip = ("Center Frequency")
+              Arrangement = Arrange.Horizontal
+              { Label25 Label
+                MoveScaled(1,0,2,4)
+                Text = ("F")
+              }
+              { f4 SpinBox EqControls
+                Name = "f4"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 4000
+              }
+            }
+            { Panel12 Panel
+              MoveScaled(2,12,17,4)
+              ToolTip = ("Gain (dB)")
+              Arrangement = Arrange.Horizontal
+              { Label26 Label
+                MoveScaled(1,0,2,4)
+                Text = ("G")
+              }
+              { g4 SpinBox EqControls
+                Name = "g4"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = -30
+                MaxValue = 30
+              }
+            }
+            { Panel13 Panel
+              MoveScaled(2,17,17,4)
+              ToolTip = ("Filter width (Hz)")
+              Arrangement = Arrange.Horizontal
+              { Label27 Label
+                MoveScaled(1,0,2,4)
+                Text = ("W")
+              }
+              { w4 SpinBox EqControls
+                Name = "w4"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 1000
+              }
+            }
+          }
+          { FrameBand5 Panel
+            MoveScaled(102,-2,21,24)
+            Font = Font["-1"]
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            Spacing = True
+            Margin = True
+            Border = Border.Etched
+            { SwitchButton5 SwitchButton switchers
+              Name = "SwitchButton5"
+              MoveScaled(2,2,17,4)
+              Value = True
+            }
+            { Panel14 Panel
+              MoveScaled(2,7,17,4)
+              ToolTip = ("Center Frequency")
+              Arrangement = Arrange.Horizontal
+              { Label28 Label
+                MoveScaled(1,0,2,4)
+                Text = ("F")
+              }
+              { f5 SpinBox EqControls
+                Name = "f5"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 12000
+              }
+            }
+            { Panel15 Panel
+              MoveScaled(2,12,17,4)
+              ToolTip = ("Gain (dB)")
+              Arrangement = Arrange.Horizontal
+              { Label29 Label
+                MoveScaled(1,0,2,4)
+                Text = ("G")
+              }
+              { g5 SpinBox EqControls
+                Name = "g5"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = -30
+                MaxValue = 30
+              }
+            }
+            { Panel16 Panel
+              MoveScaled(2,17,17,4)
+              ToolTip = ("Filter width (Hz)")
+              Arrangement = Arrange.Horizontal
+              { Label30 Label
+                MoveScaled(1,0,2,4)
+                Text = ("W")
+              }
+              { w5 SpinBox EqControls
+                Name = "w5"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 2000
+              }
+            }
+          }
+          { FrameBand6 Panel
+            MoveScaled(123,-3,21,24)
+            Font = Font["-1"]
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            Spacing = True
+            Margin = True
+            Border = Border.Etched
+            { SwitchButton6 SwitchButton switchers
+              Name = "SwitchButton6"
+              MoveScaled(2,2,17,4)
+              Value = True
+            }
+            { Panel17 Panel
+              MoveScaled(2,7,17,4)
+              ToolTip = ("Center Frequency")
+              Arrangement = Arrange.Horizontal
+              { Label31 Label
+                MoveScaled(1,0,2,4)
+                Text = ("F")
+              }
+              { f6 SpinBox EqControls
+                Name = "f6"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 12000
+              }
+            }
+            { Panel18 Panel
+              MoveScaled(2,12,17,4)
+              ToolTip = ("Gain (dB)")
+              Arrangement = Arrange.Horizontal
+              { Label32 Label
+                MoveScaled(1,0,2,4)
+                Text = ("G")
+              }
+              { g6 SpinBox EqControls
+                Name = "g6"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = -30
+                MaxValue = 30
+              }
+            }
+            { Panel19 Panel
+              MoveScaled(2,17,17,4)
+              ToolTip = ("Filter width (Hz)")
+              Arrangement = Arrange.Horizontal
+              { Label33 Label
+                MoveScaled(1,0,2,4)
+                Text = ("W")
+              }
+              { w6 SpinBox EqControls
+                Name = "w6"
+                MoveScaled(4,0,13,4)
+                Font = Font["-2"]
+                Expand = True
+                MinValue = 1
+                MaxValue = 24000
+                Value = 2000
+              }
+            }
+          }
+        }
+        { CheckBox_autogain_anequalizer CheckBox
+          MoveScaled(19,38,24,4)
+          AutoResize = True
+          Text = ("Avoid clipping")
+          Value = CheckBox.True
+        }
+      }
+      Index = 1
+      Text = "compand"
+      { vboxcompand Panel
+        MoveScaled(1,1,52,36)
+        Arrangement = Arrange.Vertical
         Spacing = True
         Margin = True
-        Padding = 4
-        Border = Border.Etched
-        { VBox3xx VBox
-          MoveScaled(1,16,2,6)
-          Expand = True
-        }
-        { VBox2xx VBox
-          MoveScaled(3,1,51,38)
+        { Label43 Label
+          MoveScaled(1,1,41,5)
+          Font = Font["Bold"]
+          Background = Color.TextBackground
           AutoResize = True
-          { HBox4 HBox
-            MoveScaled(2,2,50,3)
-            { Label2 Label
-              MoveScaled(0,0,4,4)
-              Text = ("31")
-            }
-            { Label3 Label
-              MoveScaled(4,0,4,4)
-              Text = ("62")
-            }
-            { Label4 Label
-              MoveScaled(8,0,4,4)
-              Text = ("125")
-            }
-            { Label5 Label
-              MoveScaled(12,0,4,4)
-              Text = ("250")
-            }
-            { Label6 Label
-              MoveScaled(16,0,4,4)
-              Text = ("500")
-            }
-            { Label7 Label
-              MoveScaled(20,0,4,4)
-              Text = ("1K")
-            }
-            { Label8 Label
-              MoveScaled(24,0,4,4)
-              Text = ("2K")
-            }
-            { Label9 Label
-              MoveScaled(28,0,4,4)
-              Text = ("4K")
-            }
-            { Label10 Label
-              MoveScaled(32,0,4,4)
-              Text = ("8K")
-            }
-            { Label11 Label
-              MoveScaled(36,0,4,4)
-              Text = ("16K")
-            }
+          Alignment = Align.Center
+          Border = Border.Plain
+          Text = ("A good realtime normalizer (with auto values)")
+        }
+        { Separator1 Separator
+          MoveScaled(1,7,50,1)
+        }
+        { Hbox8 HBox
+          MoveScaled(1,9,51,6)
+          Padding = 6
+          { Label34 Label
+            MoveScaled(1,0,32,5)
+            Text = ("Makeup Gain (dB)")
           }
-          { SlidersContainer HBox
-            MoveScaled(-2,5,50,24)
+          { makeupgainspinbox SpinBox compand_dynaobj
+            Name = "makeupgainspinbox"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
             Expand = True
-            { Freq0 Slider SlidersFreq
-              Name = "Freq0"
-              MoveScaled(0,0,4,20.7143)
-              MinValue = -12
-              MaxValue = 12
-              PageStep = 1
-              Mark = True
-            }
-            { Freq1 Slider SlidersFreq
-              Name = "Freq1"
-              MoveScaled(5,0,4,20.7143)
-              MinValue = -12
-              MaxValue = 12
-              PageStep = 1
-              Mark = True
-            }
-            { Freq2 Slider SlidersFreq
-              Name = "Freq2"
-              MoveScaled(10,0,4,20.7143)
-              MinValue = -12
-              MaxValue = 12
-              PageStep = 1
-              Mark = True
-            }
-            { Freq3 Slider SlidersFreq
-              Name = "Freq3"
-              MoveScaled(15,0,4,20.7143)
-              MinValue = -12
-              MaxValue = 12
-              PageStep = 1
-              Mark = True
-            }
-            { Freq4 Slider SlidersFreq
-              Name = "Freq4"
-              MoveScaled(20,0,4,20.7143)
-              MinValue = -12
-              MaxValue = 12
-              PageStep = 1
-              Mark = True
-            }
-            { Freq5 Slider SlidersFreq
-              Name = "Freq5"
-              MoveScaled(25,0,4,20.7143)
-              MinValue = -12
-              MaxValue = 12
-              PageStep = 1
-              Mark = True
-            }
-            { Freq6 Slider SlidersFreq
-              Name = "Freq6"
-              MoveScaled(30,0,4,20.7143)
-              MinValue = -12
-              MaxValue = 12
-              PageStep = 1
-              Mark = True
-            }
-            { Freq7 Slider SlidersFreq
-              Name = "Freq7"
-              MoveScaled(35,0,4,20.7143)
-              MinValue = -12
-              MaxValue = 12
-              PageStep = 1
-              Mark = True
-            }
-            { Freq8 Slider SlidersFreq
-              Name = "Freq8"
-              MoveScaled(40,0,4,20.7143)
-              MinValue = -12
-              MaxValue = 12
-              PageStep = 1
-              Mark = True
-            }
-            { Freq9 Slider SlidersFreq
-              Name = "Freq9"
-              MoveScaled(45,0,4,20.7143)
-              MinValue = -12
-              MaxValue = 12
-              PageStep = 1
-              Mark = True
-            }
-          }
-          { ValuesContainer HBox
-            MoveScaled(1,29,50,4)
-            { tfreq1 TextBox
-              MoveScaled(0,0,4,4)
-              #Translate = False
-              Text = "0"
-              ReadOnly = True
-            }
-            { tfreq2 TextBox
-              MoveScaled(4,0,4,4)
-              #Translate = False
-              Text = "0"
-              ReadOnly = True
-            }
-            { tfreq3 TextBox
-              MoveScaled(8,0,4,4)
-              #Translate = False
-              Text = "0"
-              ReadOnly = True
-            }
-            { tfreq4 TextBox
-              MoveScaled(12,0,4,4)
-              #Translate = False
-              Text = "0"
-              ReadOnly = True
-            }
-            { tfreq5 TextBox
-              MoveScaled(16,0,4,4)
-              #Translate = False
-              Text = "0"
-              ReadOnly = True
-            }
-            { tfreq6 TextBox
-              MoveScaled(20,0,4,4)
-              #Translate = False
-              Text = "0"
-              ReadOnly = True
-            }
-            { tfreq7 TextBox
-              MoveScaled(24,0,4,4)
-              #Translate = False
-              Text = "0"
-              ReadOnly = True
-            }
-            { tfreq8 TextBox
-              MoveScaled(28,0,4,4)
-              #Translate = False
-              Text = "0"
-              ReadOnly = True
-            }
-            { tfreq9 TextBox
-              MoveScaled(32,0,4,4)
-              #Translate = False
-              Text = "0"
-              ReadOnly = True
-            }
-            { tfreq10 TextBox
-              MoveScaled(36,0,4,4)
-              #Translate = False
-              Text = "0"
-              ReadOnly = True
-            }
-          }
-          { HBox3 HBox
-            MoveScaled(1,33,50,4)
-            { PresetsCombobox ComboBox
-              MoveScaled(0,0,40,4)
-              ReadOnly = True
-              List = [("Custom"), ("Flat"), ("1965"), ("Air"), ("Brittle"), ("Car Stereo"), ("Classic V"), ("Clear "), ("Death"), ("Dark"), ("Drums"), ("Home Theater"), ("Loudness"), ("Metal"), ("Pop"), ("Premaster"), ("Presence"), ("Punch & Sparkle"), ("Shimmer"), ("Soft Bass"), ("Strings")]
-              Text = ("Presets")
-            }
+            MinValue = 1
+            MaxValue = 500
+            Step = 5
+            Value = 50
           }
         }
-        { VBox4xx VBox
-          MoveScaled(56,17,5,6)
+        { Button_compand_autovalues ToggleButton
+          MoveScaled(1,16,51,4)
+          Text = ("Auto values")
+        }
+        { hboxsoftknee HBox
+          MoveScaled(1,21,51,6)
+          Padding = 6
+          { Label35 Label
+            MoveScaled(1,0,32,5)
+            Text = ("Soft knee radius")
+          }
+          { softkneespinbox SpinBox compand_dynaobj
+            Name = "softkneespinbox"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            MaxValue = 900
+            Step = 5
+            Value = 25
+          }
+        }
+        { hboxdecay HBox
+          MoveScaled(1,28,51,6)
+          Padding = 6
+          { Label36 Label
+            MoveScaled(1,0,32,5)
+            Text = ("Decay (decisecs)")
+          }
+          { DecaySpinbox SpinBox compand_dynaobj
+            Name = "DecaySpinbox"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            MaxValue = 999999
+            Step = 10
+            Value = 50000
+          }
+        }
+      }
+      Index = 2
+      Text = "acompressor"
+      { vboxacompressor ScrollView
+        MoveScaled(2,2,52,40)
+        Expand = True
+        Arrangement = Arrange.Vertical
+        Margin = True
+        ScrollBar = Scroll.Vertical
+        { Hbox3 HBox
+          MoveScaled(2,2,51,6)
+          Padding = 6
+          { Label2 Label
+            MoveScaled(1,0,18,5)
+            AutoResize = True
+            Text = ("Makeup Gain (dB)")
+          }
+          { makeupgainspinbox2 SpinBox acompressor_dynaobj
+            Name = "makeupgainspinbox2"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            MaxValue = 36
+            Step = 5
+            Value = 15
+          }
+        }
+        { Button_acompressor_autovalues ToggleButton
+          MoveScaled(1,9,51,4)
+          Text = ("Auto values")
+        }
+        { boxacompressor1 HBox
+          MoveScaled(1,14,51,6)
+          Padding = 6
+          { Label5 Label
+            MoveScaled(2,0,17,5)
+            Text = ("Threshold (dB)")
+          }
+          { thresholdspinbox SpinBox acompressor_dynaobj
+            Name = "thresholdspinbox"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            MinValue = -60
+            MaxValue = 0
+            Value = -18
+          }
+        }
+        { boxacompressor2 HBox
+          MoveScaled(1,21,51,6)
+          Padding = 6
+          { Label6 Label
+            MoveScaled(1,0,17,5)
+            Text = ("Ratio")
+          }
+          { ratiospinbox SpinBox acompressor_dynaobj
+            Name = "ratiospinbox"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            MinValue = 1
+            MaxValue = 20
+            Value = 2
+          }
+        }
+        { boxacompressor3 HBox
+          MoveScaled(1,28,51,6)
+          Padding = 6
+          { Label7 Label
+            MoveScaled(1,0,17,5)
+            Text = ("Attack (centisecs)")
+          }
+          { attackspinbox SpinBox acompressor_dynaobj
+            Name = "attackspinbox"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            MaxValue = 200
+            Step = 10
+            Value = 2
+          }
+        }
+        { boxacompressor4 HBox
+          MoveScaled(1,35,51,6)
+          Padding = 6
+          { Label4 Label
+            MoveScaled(1,0,17,5)
+            Text = ("Release (decisecs)")
+          }
+          { releasespinbox SpinBox acompressor_dynaobj
+            Name = "releasespinbox"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            MaxValue = 90
+            Step = 10
+            Value = 90
+          }
+        }
+        { boxacompressor5 HBox
+          MoveScaled(1,42,51,6)
+          Padding = 6
+          { Label3 Label
+            MoveScaled(2,0,17,5)
+            Text = ("Soft knee radius")
+          }
+          { kneespinbox SpinBox acompressor_dynaobj
+            Name = "kneespinbox"
+            MoveScaled(34,0,16,5)
+            Font = Font["Monospace"]
+            Expand = True
+            MinValue = 1
+            MaxValue = 8
+            Step = 5
+            Value = 7
+          }
+        }
+        { boxacompressor6 HBox
+          MoveScaled(1,49,51,6)
+          Padding = 6
+          { Label9 Label
+            MoveScaled(1,0,17,5)
+            Text = ("link")
+          }
+          { linkcombobox ComboBox acompressor_dynaobj
+            Name = "linkcombobox"
+            MoveScaled(26,1,24,4)
+            #Translate = False
+            Expand = True
+            ReadOnly = True
+            List = ["average", "maximum"]
+            Text = "average"
+          }
+        }
+        { boxacompressor7 HBox
+          MoveScaled(1,56,51,6)
+          Padding = 6
+          { Label8 Label
+            MoveScaled(1,0,17,5)
+            Text = ("detection")
+          }
+          { detectioncombobox ComboBox acompressor_dynaobj
+            Name = "detectioncombobox"
+            MoveScaled(26,1,24,4)
+            #Translate = False
+            Expand = True
+            ReadOnly = True
+            List = ["peak", "rms"]
+            Text = "rms"
+          }
+        }
+      }
+      Index = 3
+      Text = "superequalizer"
+      { VboxSuperequalizer Panel
+        MoveScaled(1,0,83,53)
+        Expand = True
+        Arrangement = Arrange.Vertical
+        Centered = True
+        Spacing = True
+        { Panel38 Panel
+          MoveScaled(3,1,56,5)
+          Arrangement = Arrange.Horizontal
+          Centered = True
+          Spacing = True
+          { PresetCombobox ComboBox
+            MoveScaled(0,0,38,4)
+            ReadOnly = True
+          }
+          { Separator3 Separator
+            MoveScaled(38,1,1,3)
+          }
+          { CheckBox_autogain_superequalizer CheckBox
+            MoveScaled(41,0,24,4)
+            AutoResize = True
+            Text = ("Avoid clipping")
+            Value = CheckBox.True
+          }
+        }
+        { seqcontainer ScrollView
+          MoveScaled(3,7,78,46)
           Expand = True
+          Arrangement = Arrange.Horizontal
+          Centered = True
+          Margin = True
+          Border = False
+          NoShadow = True
+          { Panel20 Panel
+            MoveScaled(2,0,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label44 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider2 Slider seqslider
+              Name = "Slider2"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox13 ComboBox seqcombo
+              Name = "ComboBox13"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel21 Panel
+            MoveScaled(2,48,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label45 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider10 Slider seqslider
+              Name = "Slider10"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox14 ComboBox seqcombo
+              Name = "ComboBox14"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel22 Panel
+            MoveScaled(10,48,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label46 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider11 Slider seqslider
+              Name = "Slider11"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox15 ComboBox seqcombo
+              Name = "ComboBox15"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel23 Panel
+            MoveScaled(10,0,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label47 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider1 Slider seqslider
+              Name = "Slider1"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox16 ComboBox seqcombo
+              Name = "ComboBox16"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel24 Panel
+            MoveScaled(18,48,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label48 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider12 Slider seqslider
+              Name = "Slider12"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox17 ComboBox seqcombo
+              Name = "ComboBox17"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel25 Panel
+            MoveScaled(18,0,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label49 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider3 Slider seqslider
+              Name = "Slider3"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox18 ComboBox seqcombo
+              Name = "ComboBox18"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel26 Panel
+            MoveScaled(26,48,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label50 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider13 Slider seqslider
+              Name = "Slider13"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox19 ComboBox seqcombo
+              Name = "ComboBox19"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel27 Panel
+            MoveScaled(26,0,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label51 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider4 Slider seqslider
+              Name = "Slider4"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox20 ComboBox seqcombo
+              Name = "ComboBox20"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel28 Panel
+            MoveScaled(34,48,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label52 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider14 Slider seqslider
+              Name = "Slider14"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox21 ComboBox seqcombo
+              Name = "ComboBox21"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel29 Panel
+            MoveScaled(34,0,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label53 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider5 Slider seqslider
+              Name = "Slider5"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox22 ComboBox seqcombo
+              Name = "ComboBox22"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel30 Panel
+            MoveScaled(42,48,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label54 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider15 Slider seqslider
+              Name = "Slider15"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox23 ComboBox seqcombo
+              Name = "ComboBox23"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel31 Panel
+            MoveScaled(42,0,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label55 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider6 Slider seqslider
+              Name = "Slider6"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox24 ComboBox seqcombo
+              Name = "ComboBox24"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel32 Panel
+            MoveScaled(50,48,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label56 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider16 Slider seqslider
+              Name = "Slider16"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox25 ComboBox seqcombo
+              Name = "ComboBox25"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel33 Panel
+            MoveScaled(50,0,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label57 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider7 Slider seqslider
+              Name = "Slider7"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox26 ComboBox seqcombo
+              Name = "ComboBox26"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel34 Panel
+            MoveScaled(58,48,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label58 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider17 Slider seqslider
+              Name = "Slider17"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox27 ComboBox seqcombo
+              Name = "ComboBox27"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel35 Panel
+            MoveScaled(58,0,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label59 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider8 Slider seqslider
+              Name = "Slider8"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox28 ComboBox seqcombo
+              Name = "ComboBox28"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel36 Panel
+            MoveScaled(66,48,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label60 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider18 Slider seqslider
+              Name = "Slider18"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox29 ComboBox seqcombo
+              Name = "ComboBox29"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
+          { Panel37 Panel
+            MoveScaled(66,0,8,44)
+            Arrangement = Arrange.Vertical
+            AutoResize = True
+            { Label61 Label
+              MoveScaled(1,1,5,4)
+              Font = Font["Bold"]
+              AutoResize = True
+              Alignment = Align.Center
+              Text = ("92")
+            }
+            { Slider9 Slider seqslider
+              Name = "Slider9"
+              MoveScaled(2,7,4,29)
+              Expand = True
+              MinValue = -150
+              MaxValue = 150
+              Orientation = ScrollBar.Vertical
+              Mark = True
+            }
+            { ComboBox30 ComboBox seqcombo
+              Name = "ComboBox30"
+              MoveScaled(0,37,8,4)
+              List = [("15.0"), ("14.9"), ("14.8"), ("14.7"), ("14.6"), ("14.5"), ("14.4"), ("14.3"), ("14.2"), ("14.1"), ("14.0"), ("13.9"), ("13.8"), ("13.7"), ("13.6"), ("13.5"), ("13.4"), ("13.3"), ("13.2"), ("13.1"), ("13.0"), ("12.9"), ("12.8"), ("12.7"), ("12.6"), ("12.5"), ("12.4"), ("12.3"), ("12.2"), ("12.1"), ("12.0"), ("11.9")].Insert([("11.8"), ("11.7"), ("11.6"), ("11.5"), ("11.4"), ("11.3"), ("11.2"), ("11.1"), ("11.0"), ("10.9"), ("10.8"), ("10.7"), ("10.6"), ("10.5"), ("10.4"), ("10.3"), ("10.2"), ("10.1"), ("10.0"), ("9.9"), ("9.8"), ("9.7"), ("9.6"), ("9.5"), ("9.4"), ("9.3"), ("9.2"), ("9.1"), ("9.0"), ("8.9"), ("8.8"), ("8.7")]).Insert([("8.6"), ("8.5"), ("8.4"), ("8.3"), ("8.2"), ("8.1"), ("8.0"), ("7.9"), ("7.8"), ("7.7"), ("7.6"), ("7.5"), ("7.4"), ("7.3"), ("7.2"), ("7.1"), ("7.0"), ("6.9"), ("6.8"), ("6.7"), ("6.6"), ("6.5"), ("6.4"), ("6.3"), ("6.2"), ("6.1"), ("6.0"), ("5.9"), ("5.8"), ("5.7"), ("5.6"), ("5.5")]).Insert([("5.4"), ("5.3"), ("5.2"), ("5.1"), ("5.0"), ("4.9"), ("4.8"), ("4.7"), ("4.6"), ("4.5"), ("4.4"), ("4.3"), ("4.2"), ("4.1"), ("4.0"), ("3.9"), ("3.8"), ("3.7"), ("3.6"), ("3.5"), ("3.4"), ("3.3"), ("3.2"), ("3.1"), ("3.0"), ("2.9"), ("2.8"), ("2.7"), ("2.6"), ("2.5"), ("2.4"), ("2.3")]).Insert([("2.2"), ("2.1"), ("2.0"), ("1.9"), ("1.8"), ("1.7"), ("1.6"), ("1.5"), ("1.4"), ("1.3"), ("1.2"), ("1.1"), ("1.0"), ("0.9"), ("0.8"), ("0.7"), ("0.6"), ("0.5"), ("0.4"), ("0.3"), ("0.2"), ("0.1"), ("0.0"), ("-0.1"), ("-0.2"), ("-0.3"), ("-0.4"), ("-0.5"), ("-0.6"), ("-0.7"), ("-0.8"), ("-0.9")]).Insert([("-1.0"), ("-1.1"), ("-1.2"), ("-1.3"), ("-1.4"), ("-1.5"), ("-1.6"), ("-1.7"), ("-1.8"), ("-1.9"), ("-2.0"), ("-2.1"), ("-2.2"), ("-2.3"), ("-2.4"), ("-2.5"), ("-2.6"), ("-2.7"), ("-2.8"), ("-2.9"), ("-3.0"), ("-3.1"), ("-3.2"), ("-3.3"), ("-3.4"), ("-3.5"), ("-3.6"), ("-3.7"), ("-3.8"), ("-3.9"), ("-4.0"), ("-4.1")]).Insert([("-4.2"), ("-4.3"), ("-4.4"), ("-4.5"), ("-4.6"), ("-4.7"), ("-4.8"), ("-4.9"), ("-5.0"), ("-5.1"), ("-5.2"), ("-5.3"), ("-5.4"), ("-5.5"), ("-5.6"), ("-5.7"), ("-5.8"), ("-5.9"), ("-6.0"), ("-6.1"), ("-6.2"), ("-6.3"), ("-6.4"), ("-6.5"), ("-6.6"), ("-6.7"), ("-6.8"), ("-6.9"), ("-7.0"), ("-7.1"), ("-7.2"), ("-7.3")]).Insert([("-7.4"), ("-7.5"), ("-7.6"), ("-7.7"), ("-7.8"), ("-7.9"), ("-8.0"), ("-8.1"), ("-8.2"), ("-8.3"), ("-8.4"), ("-8.5"), ("-8.6"), ("-8.7"), ("-8.8"), ("-8.9"), ("-9.0"), ("-9.1"), ("-9.2"), ("-9.3"), ("-9.4"), ("-9.5"), ("-9.6"), ("-9.7"), ("-9.8"), ("-9.9"), ("-10.0"), ("-10.1"), ("-10.2"), ("-10.3"), ("-10.4"), ("-10.5")]).Insert([("-10.6"), ("-10.7"), ("-10.8"), ("-10.9"), ("-11.0"), ("-11.1"), ("-11.2"), ("-11.3"), ("-11.4"), ("-11.5"), ("-11.6"), ("-11.7"), ("-11.8"), ("-11.9"), ("-12.0"), ("-12.1"), ("-12.2"), ("-12.3"), ("-12.4"), ("-12.5"), ("-12.6"), ("-12.7"), ("-12.8"), ("-12.9"), ("-13.0"), ("-13.1"), ("-13.2"), ("-13.3"), ("-13.4"), ("-13.5"), ("-13.6"), ("-13.7")]).Insert([("-13.8"), ("-13.9"), ("-14.0"), ("-14.1"), ("-14.2"), ("-14.3"), ("-14.4"), ("-14.5"), ("-14.6"), ("-14.7"), ("-14.8"), ("-14.9"), ("-15.0")])
+              Text = ("0.0")
+            }
+          }
         }
       }
       Index = 0
-    }
-    { ButtonLadspaHelper Button
-      MoveScaled(34,49,14,4)
-      Visible = False
-      ToolTip = ("Show a tool that helps you to compile ladspa filter parameters.\nIf you don't use ladspa, just don't push it.")
-      Text = ("Ladspa")
-      Picture = Picture["icon:/16/tools"]
     }
     Index = 2
     Text = ("Video Drivers")
@@ -333,26 +1404,14 @@
         Expand = True
         Arrangement = Arrange.Vertical
       }
-      { NOSAVELabel1 TextLabel
-        MoveScaled(3,47,24,7)
-        Visible = False
-        Background = Color.TooltipForeground
-        Foreground = Color.TooltipBackground
-        Mouse = Mouse.Pointing
-        ToolTip = ("Gpu decoding settings forced this video driver,\nso any other driver will be ignored, but you can\nstill configure the options for the overridden driver.\n\nClick to open the gpu decoding settings window.\n")
-        Padding = 6
-        AutoResize = True
-        Alignment = Align.Center
-        Border = Border.Plain
-      }
     }
     { ConfigureTabs_video TabStrip
-      MoveScaled(30,4,62,47)
+      MoveScaled(30,2,62,52)
       Expand = True
       Arrangement = Arrange.Vertical
       Margin = True
       Padding = 4
-      Count = 7
+      Count = 6
       TextFont = Font["-1"]
       Index = 0
       Text = ("Xv")
@@ -366,126 +1425,378 @@
           AutoResize = True
           Padding = 6
           { PortChk2XV CheckBox
-            MoveScaled(1,1,15,4)
+            MoveScaled(1,1,15,4.5714)
             #Translate = False
-            Tag = "adaptor="
+            Tag = "xv-adaptor"
             Text = "Adaptor"
           }
           { SpinBox10Xv SpinBox notifyobj
             Name = "SpinBox10Xv"
-            MoveScaled(33,1,9,4)
+            MoveScaled(33,1,9,4.5714)
             MaxValue = 999
           }
         }
         { TextBoxAdaptorsxv TextArea
-          MoveScaled(8,10,44,15)
+          MoveScaled(0,8,44,15)
           Text = ("TextBox8")
           ReadOnly = True
         }
       }
       Index = 1
-      Text = ("opengl")
+      Text = ("gpu")
       { GLScrollView ScrollView
-        MoveScaled(2,-2,58,44)
+        MoveScaled(2,4,58,44)
         Expand = True
         Arrangement = Arrange.Vertical
         Spacing = True
         Padding = 4
         Border = False
-        { openglParseMeHBox1 HBox
-          MoveScaled(0,2,45,6)
+        { gpulParseMeHBox6 HBox
+          MoveScaled(2,1,45,6)
           AutoResize = True
           Padding = 8
-          { CheckBox3gl2 CheckBox
-            MoveScaled(1,1,17,4)
+          { CheckBox3gl5 CheckBox
+            MoveScaled(1,1,17,4.5714)
             #Translate = False
-            Tag = "backend="
-            Text = "backend"
+            Tag = "gpu-api"
+            Text = "gpu api"
             Value = CheckBox.True
           }
-          { ComboBox1gl2 ComboBox
-            MoveScaled(19,1,24,4)
+          { ComboBox1gpu ComboBox
+            MoveScaled(19,1,24,4.5714)
             #Translate = False
             Expand = True
-            ReadOnly = True
-            List = ["auto", "x11", "x11egl"]
-            Text = "x11"
+            List = ["auto", "opengl", "vulkan"]
+            Text = "auto"
           }
         }
-        { openglParseMeHBox10 HBox
-          MoveScaled(0,9,45,6)
+        { gpulParseMeHBox1 HBox
+          MoveScaled(2,8,45,6)
+          ToolTip = ("Please, do not set this to anything related to Wayland.")
+          AutoResize = True
+          Padding = 8
+          { CheckBox3gl7 CheckBox
+            MoveScaled(1,1,17,4.5714)
+            #Translate = False
+            Tag = "gpu-context"
+            Text = "gpu context"
+            Value = CheckBox.True
+          }
+          { ComboBox1gpu2 ComboBox
+            MoveScaled(19,1,24,4.5714)
+            #Translate = False
+            Expand = True
+            List = ["x11egl", "x11vk"]
+            Text = "x11egl"
+          }
+        }
+        { Separator2 Separator
+          MoveScaled(-1,15,51,1)
+        }
+        { NOTParseMeHBox2 HBox
+          MoveScaled(0,16,45,6)
+          AutoResize = True
+          Padding = 8
+          { Button2 Button
+            MoveScaled(1,1,20,4)
+            Text = ("Apply HQ profile")
+          }
+        }
+        { gpuParseMeHBox10 HBox
+          MoveScaled(0,22,45,6)
           AutoResize = True
           Padding = 8
           { CheckBox3gl CheckBox
-            MoveScaled(1,1,17,4)
+            MoveScaled(1,1,17,4.5714)
             #Translate = False
-            Tag = "scale="
+            Tag = "scale"
             Text = "scale"
           }
           { ComboBox1gl ComboBox
-            MoveScaled(19,1,24,4)
+            MoveScaled(19,1,24,4.5714)
             #Translate = False
             Expand = True
-            ReadOnly = True
-            List = ["bilinear", "spline36", "lanczos", "ewa_lanczos", "mitchell"]
+            List = ["bilinear", "bicubic_fast", "oversample", "spline16", "spline36", "spline64", "sinc", "lanczos", "ginseng", "jinc", "ewa_lanczos", "ewa_hanning", "ewa_ginseng", "ewa_lanczossharp", "ewa_lanczossoft", "haasnsoft", "bicubic", "bcspline", "catmull_rom", "mitchell", "robidoux", "robidouxsharp", "ewa_robidoux", "ewa_robidouxsharp", "box", "nearest", "triangle", "gaussian"]
             Text = "bilinear"
           }
         }
-        { openglParseMeHBox2 HBox
-          MoveScaled(0,15,45,6)
+        { gpuopenglParseMeHBox5 HBox
+          MoveScaled(0,28,45,6)
           AutoResize = True
           Padding = 8
-          { CheckBox2gl CheckBox
-            MoveScaled(1,1,20,4)
+          { CheckBox3gl4 CheckBox
+            MoveScaled(1,1,17,4.5714)
             #Translate = False
-            Tag = "scale=spline36:cscale=spline36:dscale=mitchell:dither-depth=auto:correct-downscaling:sigmoid-upscaling:pbo"
-            Text = "HQ preset"
+            Tag = "cscale"
+            Text = "cscale"
+          }
+          { ComboBox1gl3 ComboBox
+            MoveScaled(19,1,24,4.5714)
+            #Translate = False
+            Expand = True
+            List = ["bilinear", "bicubic_fast", "oversample", "spline16", "spline36", "spline64", "sinc", "lanczos", "ginseng", "jinc", "ewa_lanczos", "ewa_hanning", "ewa_ginseng", "ewa_lanczossharp", "ewa_lanczossoft", "haasnsoft", "bicubic", "bcspline", "catmull_rom", "mitchell", "robidoux", "robidouxsharp", "ewa_robidoux", "ewa_robidouxsharp", "box", "nearest", "triangle", "gaussian"]
+            Text = "bilinear"
           }
         }
-        { openglParseMeHBox3 HBox
-          MoveScaled(0,21,45,6)
+        { gpuopenglParseMeHBox9 HBox
+          MoveScaled(0,34,45,6)
+          AutoResize = True
+          Padding = 8
+          { CheckBox3gl6 CheckBox
+            MoveScaled(1,1,17,4.5714)
+            #Translate = False
+            Tag = "dscale"
+            Text = "dscale"
+          }
+          { ComboBox1gl5 ComboBox
+            MoveScaled(19,1,24,4.5714)
+            #Translate = False
+            Expand = True
+            List = ["bilinear", "bicubic_fast", "oversample", "spline16", "spline36", "spline64", "sinc", "lanczos", "ginseng", "jinc", "ewa_lanczos", "ewa_hanning", "ewa_ginseng", "ewa_lanczossharp", "ewa_lanczossoft", "haasnsoft", "bicubic", "bcspline", "catmull_rom", "mitchell", "robidoux", "robidouxsharp", "ewa_robidoux", "ewa_robidouxsharp", "box", "nearest", "triangle", "gaussian"]
+            Text = "bilinear"
+          }
+        }
+        { gpuopenglParseMeHBox1 HBox
+          MoveScaled(0,40,45,6)
+          AutoResize = True
+          Padding = 8
+          { CheckBox3gl2 CheckBox
+            MoveScaled(1,1,17,4.5714)
+            #Translate = False
+            Tag = "dither-depth"
+            Text = "dither depth"
+          }
+          { ComboBox1gl2 ComboBox
+            MoveScaled(19,1,24,4.5714)
+            #Translate = False
+            Expand = True
+            ReadOnly = True
+            List = ["auto", "no", "-16", "-15", "-14", "-13", "-12", "-11", "-10", "-9", "-8", "-7", "-6", "-5", "-4", "-3", "-2", "-1", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"].Insert(["14", "15", "16"])
+            Text = "auto"
+          }
+        }
+        { gpuopenglParseMeHBox7 HBox
+          MoveScaled(0,46,45,6)
+          AutoResize = True
+          Padding = 8
+          { CheckBox4gl2 CheckBox
+            MoveScaled(1,0,24,5)
+            #Translate = False
+            Tag = "correct-downscaling"
+            AutoResize = True
+            Text = "correct downscaling"
+          }
+          { ComboBox5 ComboBox
+            MoveScaled(26,0,18,5)
+            #Translate = False
+            ReadOnly = True
+            List = ["yes", "no"]
+            Text = "yes"
+          }
+        }
+        { gpuopenglParseMeHBox8 HBox
+          MoveScaled(0,51,45,6)
+          AutoResize = True
+          Padding = 8
+          { CheckBox4gl3 CheckBox
+            MoveScaled(1,0,24,5)
+            #Translate = False
+            Tag = "sigmoid-upscaling"
+            AutoResize = True
+            Text = "sigmoid upscaling"
+          }
+          { ComboBox6 ComboBox
+            MoveScaled(26,0,18,5)
+            #Translate = False
+            ReadOnly = True
+            List = ["yes", "no"]
+            Text = "yes"
+          }
+        }
+        { gpuopenglParseMeHBox12 HBox
+          MoveScaled(0,56,45,6)
+          AutoResize = True
+          Padding = 8
+          { CheckBox6gl2 CheckBox
+            MoveScaled(1,0,17,4.5714)
+            #Translate = False
+            Tag = "deband"
+            Text = "deband"
+          }
+          { ComboBox8 ComboBox
+            MoveScaled(26,0,18,5)
+            #Translate = False
+            ReadOnly = True
+            List = ["yes", "no"]
+            Text = "yes"
+          }
+        }
+        { NOPARSESeparator1 Separator
+          MoveScaled(0,63,54,1)
+        }
+        { Label40 Label
+          MoveScaled(1,64,32,3)
+          Font = Font["Bold"]
+          AutoResize = True
+          Text = ("Opengl Options")
+        }
+        { gpuopenglParseMeHBox13 HBox
+          MoveScaled(1,69,45,6)
+          AutoResize = True
+          Padding = 8
+          { CheckBox6gl3 CheckBox
+            MoveScaled(1,0,17,4.5714)
+            #Translate = False
+            Tag = "opengl-waitvsync"
+            ToolTip = "My tests show that it helps with tearing on xf86-video-intel (with accel=sna or glamour)\n\nCall  glXWaitVideoSyncSGI  after  each  buffer swap (default: disabled). \nThis may or may not help with video timing accuracy and frame drop.\nIt's possible that this makes video output slower, or has no effect at all.\nmpv-option: --opengl-waitvsync\n\n"
+            Text = "waitvsync"
+          }
+          { ComboBox9 ComboBox
+            MoveScaled(26,0,18,5)
+            #Translate = False
+            ReadOnly = True
+            List = ["yes", "no"]
+            Text = "yes"
+          }
+        }
+        { NOPARSESeparator2 Separator
+          MoveScaled(2,75,48,1)
+        }
+        { gpuopenglParseMeHBox3 HBox
+          MoveScaled(1,76,45,6)
           AutoResize = True
           Padding = 8
           { CheckBox6gl CheckBox
-            MoveScaled(1,1,17,4)
+            MoveScaled(1,0,17,4.5714)
             #Translate = False
-            Tag = "glfinish"
+            Tag = "opengl-glfinish"
             Text = "glfinish"
           }
+          { ComboBox7 ComboBox
+            MoveScaled(26,0,18,5)
+            #Translate = False
+            ReadOnly = True
+            List = ["yes", "no"]
+            Text = "yes"
+          }
         }
-        { openglParseMeHBox11 HBox
-          MoveScaled(0,27,45,6)
+        { Label41 Label
+          MoveScaled(1,84,39,3)
+          Font = Font["Bold"]
+          AutoResize = True
+          Text = ("Vulkan options")
+        }
+        { gpuopenglParseMeHBox14 HBox
+          MoveScaled(0,88,45,6)
+          ToolTip = ("Controls the presentation mode of the vulkan swapchain. This is similar to the --opengl-swapinterval option.\n              auto   Use the preferred swapchain mode for the vulkan context. (Default)\n              fifo   Non-tearing, vsync blocked. Similar to \"VSync on\".\n              fifo-relaxed\n                     Tearing, vsync blocked. Late frames will tear instead of stuttering.\n              mailbox\n                     Non-tearing, not vsync blocked. Similar to \"triple buffering\".\n              immediate\n                     Tearing, not vsync blocked. Similar to \"VSync off\".\n")
+          AutoResize = True
+          Padding = 8
+          { CheckBox6vk4 CheckBox
+            MoveScaled(1,0,24,5)
+            #Translate = False
+            Tag = "vulkan-swap-mode"
+            Text = "vulkan-swap-mode"
+          }
+          { ComboBox10 ComboBox
+            MoveScaled(26,0,18,5)
+            #Translate = False
+            ReadOnly = True
+            List = ["auto", "fifo", "fifo-relaxed", "mailbox", "immediate"]
+            Text = "auto"
+          }
+        }
+        { NOPARSESeparator3 Separator
+          MoveScaled(1,94,48,1)
+        }
+        { gpuopenglParseMeHBox15 HBox
+          MoveScaled(0,95,45,6)
+          ToolTip = ("Controls which compiler  is  used  to  translate  GLSL  to  SPIR-V.  This  is  (currently)  only  relevant  for\n              --gpu-api=vulkan. The possible choices are:\n              auto   Use the first available compiler. (Default)\n              shaderc\n                     Use  libshaderc, which is an API wrapper around glslang. This is generally the most preferred, if avail‐\n                     able.\n              nvidia Use nvidia's built-in compiler. Only works for nvidia GPUs. Can be buggy, but also  supports  some  fea‐\n                     tures glslang does not. Only works with vulkan.\n")
+          AutoResize = True
+          Padding = 8
+          { CheckBox4vk4 CheckBox
+            MoveScaled(1,0,24,5)
+            #Translate = False
+            Tag = "spirv-compiler"
+            AutoResize = True
+            Text = "spirv-compiler"
+          }
+          { ComboBox11 ComboBox
+            MoveScaled(26,0,18,5)
+            #Translate = False
+            ReadOnly = True
+            List = ["auto", "shaderc", "nvidia"]
+            Text = "auto"
+          }
+        }
+        { Label42 Label
+          MoveScaled(1,104,39,3)
+          Font = Font["Bold"]
+          AutoResize = True
+          Text = ("Gpu options")
+        }
+        { gpuopenglParseMeHBox11 HBox
+          MoveScaled(1,108,45,6)
           AutoResize = True
           Padding = 8
           { CheckBox4gl CheckBox
-            MoveScaled(1,1,39,4)
+            MoveScaled(1,0,24,5)
             #Translate = False
             Tag = "interpolation"
+            ToolTip = "Reduce stuttering caused by mismatches in the video fps and display refresh rate (also known as judder).\n\nActivating this, will silently set: --video-sync=display-vdrop"
             AutoResize = True
             Text = "temporal interpolation"
           }
+          { ComboBox4 ComboBox
+            MoveScaled(26,0,18,5)
+            #Translate = False
+            ReadOnly = True
+            List = ["yes", "no"]
+            Text = "yes"
+          }
+        }
+        { gpuopenglParseMeHBox2 HBox
+          MoveScaled(1,115,45,6)
+          AutoResize = True
+          Padding = 8
+          { CheckBox4gl4 CheckBox
+            MoveScaled(1,0,24,5)
+            #Translate = False
+            Tag = "tscale"
+            ToolTip = "Choose a temporal smoothing filter by trade blurrines/smoothnes for sharpness/jerkyness"
+            AutoResize = True
+            Text = "temporal filter"
+          }
+          { ComboBox12 ComboBox
+            MoveScaled(26,0,18,5)
+            #Translate = False
+            ReadOnly = True
+            List = ["oversample - sharp", "mitchell - default", "bicubic - blurry", "linear", "spline16", "spline36", "spline64", "sinc", "lanczos", "ginseng", "bcspline", "catmul_rom", "robidoux", "robidouxsharp", "box", "nearest", "triangle", "gaussian"]
+            Text = "yes"
+          }
         }
         { openglParseMeHBox4 HBox
-          MoveScaled(0,37,57,6)
+          MoveScaled(1,165,57,6)
+          Visible = False
+          Enabled = False
           AutoResize = True
           Padding = 8
           { CheckBox3gl3 CheckBox
-            MoveScaled(1,1,19,4)
+            MoveScaled(1,1,19,4.5714)
             #Translate = False
             AutoResize = True
             Text = "Additional options:"
           }
           { OglAddOptsTextbox TextBox
-            MoveScaled(20,1,11,4)
+            MoveScaled(20,1,11,4.5714)
             Expand = True
           }
           { Button1 Button
-            MoveScaled(31,1,9,4)
+            MoveScaled(31,1,9,4.5714)
             AutoResize = True
             Picture = Picture["icon:/16/add"]
           }
           { ComboOglOpts ComboBox
-            MoveScaled(41,1,13,4)
+            MoveScaled(41,1,13,4.5714)
             Visible = False
             Font = Font["Monospace"]
             ReadOnly = True
@@ -504,20 +1815,20 @@
           Font = Font["Italic,-1"]
           Foreground = Color.TextForeground
           AutoResize = True
-          Text = ("Override autodetected display refresh rate value")
           Alignment = Align.Left
+          Text = ("Override autodetected display refresh rate value")
         }
         { vdpauParseMeHBox1 HBox
           MoveScaled(0,3,45,5)
           AutoResize = True
           Padding = 8
           { CheckBox32vaapi2 CheckBox
-            MoveScaled(1,1,26,4)
-            Tag = "fps="
+            MoveScaled(1,1,26,4.5714)
+            Tag = "vo-vdpau-fps"
             Text = ("Display refresh rate")
           }
           { SpinBox1 SpinBox
-            MoveScaled(31,1,9,4)
+            MoveScaled(31,1,9,4.5714)
             #Translate = False
             MinValue = -1
             MaxValue = 1000
@@ -528,20 +1839,20 @@
           Font = Font["Italic,-1"]
           Foreground = Color.TextForeground
           AutoResize = True
-          Text = ("Detect whether a compositing window manager is active.")
           Alignment = Align.Left
+          Text = ("Detect whether a compositing window manager is active.")
         }
         { vdpauParseMeHBox2 HBox
           MoveScaled(0,11,45,5)
           AutoResize = True
           Padding = 8
           { CheckBox32vaapi3 CheckBox
-            MoveScaled(1,1,26,4)
-            Tag = "composite-detect="
+            MoveScaled(1,1,26,4.5714)
+            Tag = "vo-vdpau-composite-detect"
             Text = ("detect composite")
           }
           { ComboBox1 ComboBox
-            MoveScaled(19,1,24,4)
+            MoveScaled(19,1,24,4.5714)
             #Translate = False
             ReadOnly = True
             List = ["yes", "no"]
@@ -553,20 +1864,20 @@
           Font = Font["Italic,-1"]
           Foreground = Color.TextForeground
           AutoResize = True
-          Text = ("Queue video frame changes at most this many milliseconds in advance")
           Alignment = Align.Left
+          Text = ("Queue video frame changes at most this many milliseconds in advance")
         }
         { vdpauParseMeHBox3 HBox
           MoveScaled(0,19,45,5)
           AutoResize = True
           Padding = 8
           { CheckBox32vaapi4 CheckBox
-            MoveScaled(1,1,26,4)
-            Tag = "queuetime_windowed="
+            MoveScaled(1,1,26,4.5714)
+            Tag = "vo-vdpau-queuetime_windowed"
             Text = ("queue video frames (ms) windowed")
           }
           { SpinBox2 SpinBox
-            MoveScaled(31,1,9,4)
+            MoveScaled(31,1,9,4.5714)
             #Translate = False
             MaxValue = 1000
             Value = 50
@@ -577,12 +1888,12 @@
           AutoResize = True
           Padding = 8
           { CheckBox32vaapi5 CheckBox
-            MoveScaled(1,1,26,4)
-            Tag = "queuetime_fs="
+            MoveScaled(1,1,26,4.5714)
+            Tag = "vo-vdpau-queuetime-fs"
             Text = ("queue video frames (ms) fullscreen")
           }
           { SpinBox3 SpinBox
-            MoveScaled(31,1,9,4)
+            MoveScaled(31,1,9,4.5714)
             #Translate = False
             MaxValue = 1000
             Value = 50
@@ -593,20 +1904,20 @@
           Font = Font["Italic,-1"]
           Foreground = Color.TextForeground
           AutoResize = True
-          Text = ("Allocate this many output surfaces to display video frames")
           Alignment = Align.Left
+          Text = ("Allocate this many output surfaces to display video frames")
         }
         { vdpauParseMeHBox5 HBox
           MoveScaled(1,32,45,5)
           AutoResize = True
           Padding = 8
           { CheckBox32vaapi6 CheckBox
-            MoveScaled(1,1,26,4)
-            Tag = "output_surfaces="
+            MoveScaled(1,1,26,4.5714)
+            Tag = "vo-vdpau-output-surfaces"
             Text = ("surfaces number")
           }
           { SpinBox4 SpinBox
-            MoveScaled(31,1,9,4)
+            MoveScaled(31,1,9,4.5714)
             #Translate = False
             MinValue = 2
             MaxValue = 15
@@ -618,20 +1929,20 @@
           Font = Font["Italic,-1"]
           Foreground = Color.TextForeground
           AutoResize = True
-          Text = ("Never accept RGBA input.")
           Alignment = Align.Left
+          Text = ("Never accept RGBA input.")
         }
         { vdpauParseMeHBox6 HBox
           MoveScaled(0,40,49,5)
           AutoResize = True
           Padding = 8
           { CheckBox32vaapi7 CheckBox
-            MoveScaled(1,1,26,4)
-            Tag = "force-yuv="
+            MoveScaled(1,1,26,4.5714)
+            Tag = "vo-vdpau-force-yuv"
             Text = ("Force YUV")
           }
           { ComboBox2 ComboBox
-            MoveScaled(19,1,24,4)
+            MoveScaled(19,1,24,4.5714)
             #Translate = False
             ReadOnly = True
             List = ["yes", "no"]
@@ -651,13 +1962,13 @@
           AutoResize = True
           Padding = 8
           { CheckBox36vaapi CheckBox
-            MoveScaled(1,1,17,4)
+            MoveScaled(1,1,17,4.5714)
             #Translate = False
-            Tag = "scaling="
+            Tag = "vo-vaapi-scaling"
             Text = "scaling"
           }
           { ComboBox15vaapi ComboBox
-            MoveScaled(19,1,24,4)
+            MoveScaled(19,1,24,4.5714)
             Expand = True
             ReadOnly = True
             List = [("default - use implementation default (default)"), ("fast - use fast scaling, but possibly with less quality"), ("hq - use high-quality scaling, but possibly slower"), ("nla - use non-linear anamorphic scaling")]
@@ -669,36 +1980,23 @@
           AutoResize = True
           Padding = 8
           { CheckBox1vaapi CheckBox
-            MoveScaled(1,1,17,4)
+            MoveScaled(1,1,17,4.5714)
             #Translate = False
-            Tag = "scaled-osd"
+            Tag = "vo-vaapi-scaled-osd"
             Text = "scaled-osd"
+          }
+          { ComboBox3 ComboBox
+            MoveScaled(19,0,24,4.5714)
+            #Translate = False
+            ReadOnly = True
+            List = ["yes", "no"]
+            Text = "yes"
           }
         }
       }
       Index = 4
       Text = ("x11")
       Index = 5
-      Text = ("Custom video")
-      { CustomVideoScrollview ScrollView
-        MoveScaled(1,1,49,25)
-        Expand = True
-        Border = False
-        { Label12 Label
-          MoveScaled(1,0,36,4)
-          Text = (" Custom Driver(s) options, \"-vo \" is implicit.")
-        }
-        { HBox2 HBox
-          MoveScaled(0,5,48,6)
-          AutoResize = True
-          Padding = 6
-          { TextBox5cv TextBox
-            MoveScaled(1,1,48,4)
-            Expand = True
-          }
-        }
-      }
-      Index = 6
       Text = ("null")
       Index = 0
     }
@@ -711,11 +2009,11 @@
       Arrangement = Arrange.Vertical
     }
     { ConfigureTabs_audio TabStrip
-      MoveScaled(32,3,59,38)
+      MoveScaled(33,3,59,38)
       Expand = True
       Arrangement = Arrange.Vertical
       Margin = True
-      Count = 6
+      Count = 5
       TextFont = Font["-1"]
       Index = 0
       Text = ("Alsa")
@@ -729,15 +2027,14 @@
           AutoResize = True
           Padding = 6
           { AlsaDeviceChk CheckBox
-            MoveScaled(1,1,15,4)
-            Tag = "device="
-            Text = ("Device")
+            MoveScaled(1,1,15,4.5714)
+            Tag = "alsa-mixer-device"
+            Text = ("Mixer Device")
           }
-          { AlsaDeviceTextBox ComboBox
-            MoveScaled(18,1,26,4)
+          { AlsaMixerDevice ComboBox
+            MoveScaled(18,1,26,4.5714)
             Font = Font["Monospace"]
             Expand = True
-            Text = ("spdif")
           }
         }
         { AlsaParseMeHbox1 HBox
@@ -745,13 +2042,13 @@
           AutoResize = True
           Padding = 6
           { AlsaDeviceChk2 CheckBox
-            MoveScaled(1,1,15,4)
+            MoveScaled(1,1,15,4.5714)
             #Translate = False
-            Tag = "mixer-name="
-            Text = "mixer-name"
+            Tag = "alsa-mixer-name"
+            Text = "Mixer Name"
           }
           { AlsaDeviceTextBox2 ComboBox
-            MoveScaled(18,1,26,4)
+            MoveScaled(18,1,26,4.5714)
             #Translate = False
             Font = Font["Monospace"]
             Expand = True
@@ -764,13 +2061,13 @@
           AutoResize = True
           Padding = 6
           { AlsaDeviceChk1 CheckBox
-            MoveScaled(1,1,15,4)
+            MoveScaled(1,1,15,4.5714)
             #Translate = False
-            Tag = "mixer-index="
-            Text = "mixer-index"
+            Tag = "alsa-mixer-index"
+            Text = "Mixer Index"
           }
           { SpinBox1Alsa SpinBox
-            MoveScaled(34,1,9,4)
+            MoveScaled(34,1,9,4.5714)
             MaxValue = 10
           }
         }
@@ -787,13 +2084,13 @@
           AutoResize = True
           Padding = 8
           { CheckBox18jack CheckBox
-            MoveScaled(1,2,17,4)
+            MoveScaled(1,2,17,4.5714)
             #Translate = False
-            Tag = "port="
+            Tag = "jack-port"
             Text = "Port"
           }
           { TextBox3jack TextBox
-            MoveScaled(19,1,22,4)
+            MoveScaled(19,1,22,4.5714)
             #Translate = False
             Expand = True
           }
@@ -803,13 +2100,13 @@
           AutoResize = True
           Padding = 8
           { CheckBox1jack CheckBox
-            MoveScaled(1,2,17,4)
+            MoveScaled(1,2,17,4.5714)
             #Translate = False
-            Tag = "name="
+            Tag = "jack-name"
             Text = "Name"
           }
           { TextBox4jack TextBox
-            MoveScaled(19,1,22,4)
+            MoveScaled(19,1,22,4.5714)
             #Translate = False
             Expand = True
             Text = "mpv"
@@ -823,47 +2120,51 @@
         Expand = True
         Arrangement = Arrange.Vertical
         Border = False
-        { PulseParseMeHbox1 VBox
-          MoveScaled(1,0,45,13)
-          Padding = 6
-          { PulseDriverChk2pulse CheckBox
-            MoveScaled(1,1,29,4)
+        { JackParseMeHBox2 HBox
+          MoveScaled(0,0,45,6)
+          AutoResize = True
+          Padding = 8
+          { CheckBox18jack2 CheckBox
+            MoveScaled(1,2,17,4.5714)
             #Translate = False
-            Text = "host:output sink"
+            Tag = "pulse-host"
+            Text = "Host"
           }
-          { TextBox6Alsapulse TextBox
-            MoveScaled(1,6,41,4)
+          { TextBox3jack2 TextBox
+            MoveScaled(19,1,22,4.5714)
+            #Translate = False
+            Expand = True
           }
         }
         { PulseParseMeHbox3 HBox
-          MoveScaled(0,15,46,6)
+          MoveScaled(0,8,46,6)
           AutoResize = True
           Padding = 6
           { AlsaDeviceChk3pulse CheckBox
-            MoveScaled(1,1,18,4)
+            MoveScaled(1,1,18,4.5714)
             #Translate = False
-            Tag = "buffer="
+            Tag = "pulse-buffer"
             Text = "buffer"
           }
           { ComboBox1pulse ComboBox
-            MoveScaled(21,1,24,4)
+            MoveScaled(21,1,24,4.5714)
             #Translate = False
             List = ["native", "100", "250", "500", "750", "1000", "1250", "1500", "1750", "2000"]
             Text = "250"
           }
         }
         { PulseParseMeHbox2 HBox
-          MoveScaled(0,22,46,6)
+          MoveScaled(0,15,46,6)
           AutoResize = True
           Padding = 6
           { AlsaDeviceChk4pulse CheckBox
-            MoveScaled(1,1,18,4)
+            MoveScaled(1,1,18,4.5714)
             #Translate = False
-            Tag = "latency-hacks="
+            Tag = "pulse-latency-hacks"
             Text = "latency-hacks"
           }
           { ComboBox2pulse ComboBox
-            MoveScaled(21,1,24,4)
+            MoveScaled(21,1,24,4.5714)
             #Translate = False
             ReadOnly = True
             List = ["yes", "no"]
@@ -878,26 +2179,40 @@
         Expand = True
         Arrangement = Arrange.Vertical
         Border = False
-        { PcmParseMeHBox3 HBox
-          MoveScaled(0,0,45,6)
-          Tag = "noestimate"
+        { PulseParseMeHbox1 HBox
+          MoveScaled(0,0,46,6)
           AutoResize = True
-          Padding = 8
-          { CheckBox3pcm CheckBox
-            MoveScaled(1,1,18,4)
-            Tag = "nowaveheader"
-            Text = ("NoWaveHeader")
+          Padding = 6
+          { AlsaDeviceChk4pulse2 CheckBox
+            MoveScaled(1,1,18,4.5714)
+            #Translate = False
+            Tag = "ao-pcm-nowaveheader"
+            Text = "Wave Header"
+          }
+          { ComboBox2pulse2 ComboBox
+            MoveScaled(21,1,24,4.5714)
+            #Translate = False
+            ReadOnly = True
+            List = ["yes", "no"]
+            Text = "no"
           }
         }
-        { PcmParseMeHBox4 HBox
-          MoveScaled(0,6,45,6)
-          Tag = "noestimate"
+        { PulseParseMeHbox4 HBox
+          MoveScaled(0,6,46,6)
           AutoResize = True
-          Padding = 8
-          { CheckBox4pcm CheckBox
-            MoveScaled(1,1,18,4)
-            Tag = "append"
-            Text = ("append")
+          Padding = 6
+          { AlsaDeviceChk4pulse3 CheckBox
+            MoveScaled(1,1,18,4.5714)
+            #Translate = False
+            Tag = "ao-pcm-append"
+            Text = "Append"
+          }
+          { ComboBox2pulse3 ComboBox
+            MoveScaled(21,1,24,4.5714)
+            #Translate = False
+            ReadOnly = True
+            List = ["yes", "no"]
+            Text = "no"
           }
         }
         { PcmParseMeHBox2 HBox
@@ -905,12 +2220,12 @@
           AutoResize = True
           Padding = 8
           { CheckBox2pcm CheckBox
-            MoveScaled(1,0,17,4)
-            Tag = "file="
+            MoveScaled(1,0,17,4.5714)
+            Tag = "ao-pcm-file"
             Text = ("File")
           }
           { TextBox8pcm TextBox
-            MoveScaled(20,0,19,4)
+            MoveScaled(20,0,19,4.5714)
             Expand = True
           }
           { PcmFileOpen ToolButton
@@ -920,67 +2235,47 @@
         }
       }
       Index = 4
-      Text = ("Custom audio")
-      { Label13 Label
-        MoveScaled(2,1,36,4)
-        Text = (" Custom Driver(s) options, \"-ao \" is implicit.")
-      }
-      { HBox5 HBox
-        MoveScaled(1,6,55,6)
-        AutoResize = True
-        Margin = True
-        Padding = 6
-        { TextBox5customaudio TextBox
-          MoveScaled(1,1,48,4)
-          Expand = True
-        }
-      }
-      Index = 5
       Text = ("null")
       Index = 0
     }
     Index = 0
   }
   { HBox1 HBox
-    MoveScaled(9,69,76,4)
+    MoveScaled(3,76,83,5)
     Spacing = True
     Padding = 8
+    Indent = True
+    { RealTimeCHK CheckBox
+      MoveScaled(3,0,26,4)
+      ToolTip = ("Apply changes in real-time (no need to push the \"USE\" button)")
+      AutoResize = True
+      Text = ("Auto-apply filter changes")
+      Value = CheckBox.True
+    }
     { VBox1 VBox
-      MoveScaled(3,0,6,3)
+      MoveScaled(33,1,6,3)
       Expand = True
     }
     { SaveBTN Button
-      MoveScaled(29,0,13.4286,3.5714)
+      MoveScaled(41,0,14,4)
       ToolTip = ("Save and use new settings")
       AutoResize = True
       Text = ("Save")
       Picture = Picture["icon:/16/save"]
     }
     { ApplyBTN Button
-      MoveScaled(44,0,14,4)
+      MoveScaled(55,0,14,4.5714)
       ToolTip = ("Use new settings without save")
       AutoResize = True
       Text = Shortcut(("Use"), "U")
       Picture = Picture["icon:/16/redo"]
     }
     { OkBTN Button
-      MoveScaled(60,0,14,4)
+      MoveScaled(69,0,14,4.5714)
       ToolTip = ("Close the window")
       AutoResize = True
       Text = ("Close")
       Picture = Picture["icon:/16/cancel"]
     }
-  }
-  { filters_video_order TextBox
-    MoveScaled(1,0,18,4)
-    Visible = False
-  }
-  { drivers_video_order TextBox
-    MoveScaled(40,0,18,4)
-    Visible = False
-  }
-  { drivers_audio_order TextBox
-    MoveScaled(60,0,19,4)
-    Visible = False
   }
 }

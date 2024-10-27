@@ -62,21 +62,6 @@ Public Sub Init(WithMplayer As Boolean)
   Columnindex["Added on"] = 21
 End
 
-' Private Sub CheckPlayerAlive()
-' 'will restart mplayer if it is crashed  
-' 
-' 
-'   Dim restart As Boolean = True
-'   If Not (MplayerTag.ProcessRunningOvr()) Then
-'     mplayertag = New Mplayerclass
-'     MplayerTag.do_play("", "-idle -ao null -vo null -channels 6", restart)
-'     global.myDebug("(Re)starting player")
-'     Wait 0.5
-'   Endif
-' End
-
-
-
 Private Function OneOf(one As String, two As String) As String
   If one <> "" Then
     Return one
@@ -85,29 +70,6 @@ Private Function OneOf(one As String, two As String) As String
   Endif
 End
 
-
-Public Sub OLD_Load(myplaylist As Gridview, profilename As String)
-  Dim filename As String = Profilename & "/" & myplaylist.name & ".txt"
-  Dim i As Integer
-  Dim Layout As String[]
-  Loading = True
-  Try PTable = Split(file.Load(filename), "\n")
-  PTable.Resize(PTable.count - 1)
-  
-  If ptable.Count > 0 Then
-    If Ptable[0] Like "Layout*" Then
-      'load column layout
-        Layout = Split(Ptable[0], ";", "", False)
-        ptable.Remove(0, 1)
-        For i = 1 To layout.count - 1
-          myplaylist.Columns[i - 1].w = layout[i]
-        Next 'i
-    Endif
-  Endif
-  myplaylist.Rows.count = myplaylist.Rows.count + PTable.count
-  InitSearchTable()
-  global.myDebug("Load()at: " & Time)
-End
 
 Public Sub Load(mygrid As Gridview, ConfDir As String)
   Dim pTableFile As String = ConfDir & "/" & mygrid.name & ".txt"
@@ -122,6 +84,7 @@ Public Sub Load(mygrid As Gridview, ConfDir As String)
     InitSearchTable()
   Endif
 End
+
 
 Public Sub LoadTable(ByRef table As String[], filename As String, mygrid As Gridview)
   Dim i As Integer
@@ -392,12 +355,16 @@ End
 Public Sub Save(mygrid As Gridview, ConfDir As String)
   Dim pTableFile As String = ConfDir & "/" & mygrid.name & ".txt"
   Dim sTableFile As String = ConfDir & "/" & mygrid.name & ".sTable.txt"
+  global.myDebug("check")
   Randomize
   If Rnd(0, 11) > 10 Then CheckAndFixBloat() 'do this one out of 10 times
+  global.myDebug("check")
   If ptable.count = searchtable.count Then
+    global.myDebug("check")
     SaveTable(searchtable, pTableFile, mygrid)
     Try Kill sTableFile
       Else
+    global.myDebug("check")
     SaveTable(searchtable, sTableFile, mygrid)
     SaveTable(ptable, pTableFile, mygrid)
   Endif
@@ -407,16 +374,37 @@ Public Sub SaveTable(table As String[], filename As String, mygrid As Gridview)
   Dim i, r As Integer
   Dim layout As String = "Layout"
   Dim MyFile As File
+  global.myDebug("check")
+  'backup grid
+  If Not Exist(filename & ".bak", True) Then 
+    Try Copy filename To filename & ".bak"
+  Endif
+  global.myDebug("check")
+  If Exist(filename & ".bak", True) Then
+    If Exist(filename, True) Then
+      If Stat(filename).size > Stat(filename & ".bak").size Then
+        Try Kill filename & ".bak"
+        Try Copy filename To filename & ".bak"
+      Endif
+    Endif
+  Endif
+  global.myDebug("check")
+  
   Myfile = Open filename For Write Create
+  global.myDebug("check")
   'write table layout
   For i = 0 To mygrid.Columns.Count - 1
     Layout = Layout & ";" & mygrid.Columns[i].w
   Next 'i
+  global.myDebug("check")
   Print #Myfile, Layout
   For r = 0 To Table.Count - 1
     Print #Myfile, Table[r]
   Next 'c
   Close #MyFile
+  global.myDebug("check")
+  
+  
 End
 
 
@@ -705,19 +693,18 @@ Public Sub DeleteSelected(MyPlaylist As GridView, Optional DeleteURIes As Boolea
     Endif
     r = r - 1
   Wend
-'  rowheight = MyPlaylist.Rows.h
+
   SyncGrid(MyPlaylist, SearchTable, rowtoselect, ColToSelect)
-'  MyPlaylist.Rows.h = rowheight
-   ' [GB2:FNTH] MyPlaylist.Rows.h = MyPlaylist.Font.Textheight("^_") + global.rowpadding '<<--
-   'MyPlaylist.Rows.h = MyPlaylist.Font.TextHeight("^_") + global.rowpadding '<<--
+
   Try MyPlaylist.scrollx = PrevScrollX
   Try MyPlaylist.scrollY = PrevScrollY
   
-  If myplaylist.name = "LibraryGrid" Then
-    For Each thumbtodelete In thumbstodelete
-      DeleteThumbsOf(thumbtodelete)
-    Next
-  Endif
+  ' Blindly delete covers is not right, since they may be referenced by another item
+  'If myplaylist.name = "LibraryGrid" Then
+  '  For Each thumbtodelete In thumbstodelete
+  '    DeleteThumbsOf(thumbtodelete, True)
+  '  Next
+  'Endif
   
   Try myplaylist.Window.mouse = mouse.default
 End
@@ -742,8 +729,8 @@ End
 
 Public Sub DeleteThumbsOf(myrow As String)
   Dim album, artist As String
-
   Dim p As String
+
   Try p = GetValue(myrow, "Full Path")
   If Error Then global.myDebug("couldn't delete thumbnails")
   
@@ -779,7 +766,7 @@ Public Sub UpdateSelected(G As Gridview)
         Endif
         Searchtable[sRow] = UpdateTableRow(Searchtable[sRow]) 'aggiornali in searchtable
         Ptable[pRow] = Searchtable[sRow]                      '...e rifletti la modifica in ptable
-  
+
         'Discard the uncovered state so that cover will be searched again
         CoverManager.UnMarkUncovered(p)
         'invalida la riga della gridview in modo che l'evento data la ricompili con le info aggiornate
@@ -838,7 +825,7 @@ Public Sub AddDir(LibraryGrid As Gridview, DirToAdd As String, ExcludeList As Li
 
  
  
- If Exist(dirtoadd) And (Not MatchExcluded) Then
+ If Exist(dirtoadd, True) And (Not MatchExcluded) Then
    For Each filename In Dir(DirToAdd).Sort()
     If Right(DirToAdd) <> "/" Then DirToadd = DirToAdd & "/"
     MyExist = True
@@ -848,6 +835,7 @@ Public Sub AddDir(LibraryGrid As Gridview, DirToAdd As String, ExcludeList As Li
     If MyExist Then
       If Stat(DirToAdd & filename, True).Type = gb.file Then
           AddFile(LibraryGrid, DirToAdd & filename, Not (quickmode), False)
+          Wait
           If Global.LSyncing Then fmain.WaitPanel.text = Global.LSyncingMessage & "<br>" & dirtoadd
         Else If Stat(DirToAdd & filename, True).Type = gb.Directory Then
            Try AddDir(LibraryGrid, DirToAdd & filename, ExcludeList)
@@ -861,7 +849,6 @@ Public Sub AddDir(LibraryGrid As Gridview, DirToAdd As String, ExcludeList As Li
 End
 
 
-
 Public Sub SyncSortedTable()
 'Will fill SortTable with Full paths from ptable
 'and sort it to allow fast searches for duplicates through function IsDupe()
@@ -869,9 +856,7 @@ Public Sub SyncSortedTable()
   'DIM starttime AS Date = Now
   'DIM endtime AS Date
    
-  
   Dim i As Integer
-
 
   Dim Field As String = "Full Path"
   SortTable.clear
@@ -884,13 +869,80 @@ Public Sub SyncSortedTable()
     SortTable.Add(GetValue(Ptable[i], Field))
   Next 'i
   ' [GB2:TEXT] SortTable = SortTable.Sort(gb.text)
-  SortTable = SortTable.Sort(gb.language)
+
+  Try SortTable = SortTable.Sort(gb.language)
+  If Error Then
+    Debug "SortTable.Sort(gb.language) failed."
+    Debug "Some filename is using a wrong charset,"
+    Debug "Failing back to Mergesort with comparison error handling,"
+    Debug "but this may be inaccurate and lead to wrong search results."
+    Debug "You are STRONGLY advised to fix your filenames."
+    sorttable = mergesort(SortTable)
+  Endif
+
   'PRINT "Debug: playlistclass syncsorttable() end at: " & Time
   
   'endtime = Now
   'Global.syncsorttabletime = Global.syncsorttabletime + CFloat(endtime) - CFloat(starttime)
   
 End
+
+
+Private Function MergeSort(aArray As String[]) As String[]
+  'override for builtin gambas sort function with
+  'error check on comparison functions
+  'uses mergesort.
+  
+   Dim aA, aB As String[]
+   Dim iI As Integer = 0, iJ As Integer = 0, iK As Integer = 0
+   Dim iMid As Integer
+
+   ' Trivial case
+   If aArray.Count = 1 Then Return aArray
+   ' Split
+   iMid = aArray.Count / 2
+   aA = MergeSort(aArray.Copy(0, iMid))
+   aB = MergeSort(aArray.Copy(iMid, aArray.Count - iMid))
+   ' Merge. We reuse the space in aArray to save the sorted array
+   While iI < aA.Count And iJ < aB.Count
+      'If aA[iI] <= aB[iJ] Then
+      If FirstIsEqualLess(aA[iI], aB[iJ]) Then
+         aArray[iK] = aA[iI]
+         Inc iI
+      Else
+         aArray[iK] = aB[iJ]
+         Inc iJ
+      Endif
+      Inc iK
+   Wend
+   If iI = aA.Count Then ' Put the non-consumed array into aA
+      aA = aB
+      iI = iJ
+   Endif
+   While iI < aA.Count
+      aArray[iK] = aA[iI]
+      Inc iI
+      Inc iK
+   Wend
+   Return aArray
+End
+  
+Public Sub FirstIsEqualLess(a As String, b As String) As Boolean
+  Dim out As Boolean = True
+  Try out = Comp(a, b, gb.language) <= 0
+  If Error Then
+    Debug "Error while comparing strings, with gb.language", a, b
+    Try out = Comp(a, b, gb.natural) <= 0
+    If Error Then 
+      Debug "Error while comparing strings, with gb.natural", a, b
+      Try out = Comp(a, b, gb.binary) <= 0
+      If Error Then Debug "Error while comparing strings, with gb.binary, giving up.", a, b
+    Endif
+  Endif
+  Return out
+End
+
+
 
 Private Function BinarySearch(item As String) As Integer
   Dim first, Tlast, middle As Integer
@@ -925,47 +977,6 @@ Private Function BinarySearch(item As String) As Integer
     Endif
   Until first > Tlast
 End
-
-
-Private Function old_BinarySearch(item As String) As Integer
-  Dim first, Tlast, middle As Integer
-
-  Dim MiddleItem As String
-  first = 0
-  Tlast = SortTable.count - 1
-  If item Like "*La tavola da surf*" Then 
-     Print "break"
-     Stop
-   Endif
-  Repeat
-    middle = (first + tlast) / 2
-    MiddleItem = SortTable[middle]
-    If Trim(MiddleItem) = Trim(item) Then
-      Return middle
-    
-    ' 'gb.text is a case unsensitive comparision, 
-    ' 'we've to manage the sensitive comparision
-    ' 'via a gb.binary search
-    Else If Trim(Lower(middleitem)) = Trim(Lower(item)) Then
-      'If Comp(MiddleItem, item, gb.binary) < 0 Then
-      If Comp(MiddleItem, item, gb.ignorecase) < 0 Then
-        first = middle + 1
-          Else
-        tlast = middle - 1
-      Endif
-      
-    ' [GB2:TEXT] Else If Comp(MiddleItem, item, gb.text) < 0 Then  'ITEM > middle
-    Else If Comp(MiddleItem, item, gb.IgnoreCase) < 0 Then  'ITEM > middle
-        first = middle + 1
-    ' [GB2:TEXT] Else If Comp(MiddleItem, item, gb.text) > 0 Then  'ITEM < middle
-    Else If Comp(MiddleItem, item, gb.IgnoreCase) > 0 Then  'ITEM < middle
-        tlast = middle - 1
-    Endif
-  Until first > Tlast
-End
-
-
-
 
 Public Function IsDupe(item As String) As Boolean
 'binary search in sorttable for item
@@ -1177,7 +1188,7 @@ Dim fileUtf8 As String
     cha = mplayertag.getP("=audio-params/channels")
     vco = mplayertag.getP("Video-Codec")
     vbi = mplayertag.getP("=Video-Bitrate")
-    fps = mplayertag.getP("Fps")
+    fps = mplayertag.getP("container-fps")
     w = mplayertag.getP("Width")
     h = mplayertag.getP("Height")
     art = mplayertag.getP("Artist")
@@ -1479,59 +1490,103 @@ Public Sub AutoSizeColumns(MyGrid As GridView)
     Dim RStep As Integer
     Dim MaxW, MaxGbW As Integer
     If MyGrid.Rows.count <= 0 Then Return
-
+    global.myDebug("check")
     'find the maximum Gambas column width
     For TextW = 3000 DownTo 0 Step 4
+      global.myDebug("check")
       Try MyGrid.Columns[0].w = TextW
-      If MyGrid.Columns[0].w = TextW Then Break
+      global.myDebug("check")
+      If Error Then 
+        global.myDebug("check")
+        Return
+      Endif
+      If MyGrid.Columns[0].w = TextW Then 
+        global.myDebug("check")
+        Break
+      Endif
+      global.myDebug("check")
     Next
     maxgbw = TextW
-
+  global.myDebug("check")
     FirstR = global.MyRowAt(MyGrid, MyGrid.y)
+    global.myDebug("check")
     LastR = global.MyRowAt(MyGrid, MyGrid.h)
 
+global.myDebug("check")
     If LastR = -1 Then LastR = Mygrid.rows.count - 1
+    global.myDebug("check")
     If firstR = -1 Then firstR = 0
-
+global.myDebug("check")
     For c = firstC To LastC 'visible rows are always correct
+      global.myDebug("check")
       MaxW = CInt((Len(MyGrid.Columns[c].text) + 6) * CharW)
+      global.myDebug("check")
       ccaption = MyGrid.Columns[c].text
-      For r = firstR To lastR Step rstep
-        Textw = (Len(GetValue(Searchtable[r], ccaption)) + 6) * CharW
-        If MaxW < TextW Then MaxW = textW
-        If MaxW >= MaxGbW Then 
-          MaxW = MaxGbw
-          Break
-        Endif
-      Next 'r
+      global.myDebug("check")
+      If lastR <> 0 Then 'see https://github.com/kokoko3k/xt7-player-mpv/issues/23
+        For r = firstR To lastR Step rstep
+          global.myDebug("Rstep=" & rstep)
+          global.myDebug("R=" & firstr)
+          global.myDebug("FIRSTR=" & firstr)
+          global.myDebug("LASTR=" & lastr)
+          global.myDebug("check27")
+          Textw = (Len(GetValue(Searchtable[r], ccaption)) + 6) * CharW
+          global.myDebug("textw=" & textw)
+          global.myDebug("check29")
+          If MaxW < TextW Then MaxW = textW
+          global.myDebug("maxw=" & maxw)
+          global.myDebug("check31")
+          global.myDebug("maxgbw=" & maxgbw)
+          If MaxW >= MaxGbW Then 
+            global.myDebug("check MaxW >= MaxGbW ")
+            MaxW = MaxGbw
+            Break
+          Endif
+        Next 'r
+      Endif
+      global.myDebug("check")
       Mygrid.Columns[c].w = CInt(MaxW) + 100
+      global.myDebug("check")
     Next 'c
-
+global.myDebug("check")
     FirstC = 0
     LastC = MyGrid.Columns.max
     FirstR = 0
+    global.myDebug("check")
     LastR = Mygrid.Rows.max
+    global.myDebug("check")
     CharW = MyGrid.Font.TextWidth("_")
+    global.myDebug("check")
     charw = CInt(charw * 1.1)
+    global.myDebug("check")
     Rstep = (LastR Div 100) 'get 100 samples
     If rstep = 0 Then rstep = 1
+    global.myDebug("check")
     For c = firstC To LastC
+      global.myDebug("check")
       MaxW = CInt((Len(MyGrid.Columns[c].text) + 6) * CharW)
       ccaption = MyGrid.Columns[c].text
+      global.myDebug("check")
       For r = firstR To lastR Step rstep
+        global.myDebug("check")
         Textw = (Len(GetValue(Searchtable[r], ccaption)) + 10) * CharW
+        global.myDebug("check")
         If MaxW < TextW Then MaxW = textW
+        global.myDebug("check")
         If MaxW >= MaxGbW Then 
+          global.myDebug("check")
           MaxW = MaxGbw
           Break
         Endif
       Next 'r
+      global.myDebug("check")
       Mygrid.Columns[c].w = CInt(MaxW)
+      global.myDebug("check")
     Next 'c
 
-    
+    global.myDebug("check")
     Try MyGrid.Columns[0].w = MyGrid.Columns[0].w + Mygrid[0, 0].Picture.W
-
+global.myDebug("check")
     t1 = Timer()
     global.myDebug("AutosizeColumns, total time: " & CStr((t1 - t0)))
 End

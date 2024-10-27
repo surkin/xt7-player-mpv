@@ -22,7 +22,7 @@ Public ffproc As Process
   
 Public Sub ConvertandSaveAudio()
   Dim i As Integer
-  Dim youtube As New Youtubeclass(FMain.youtubetree)
+  Dim youtube As New Youtubeclass(FMain.youtubetree, False)
   Dim currentstream As String
   Dim outputfolder As String
   Dim outfmt, q As String
@@ -30,7 +30,7 @@ Public Sub ConvertandSaveAudio()
   Dim tmpout As String
   Dim outstr As String
   Dim audiotempfolder As String = global.confpath & "/audiotemp/"
-  Dim kbps As String
+  Dim kbps As String  
   Dim finalfile As String
   Dim yttitle As String
   Dim MySettings As New SettingsClass
@@ -81,6 +81,7 @@ Public Sub ConvertandSaveAudio()
   'For i = 0 To items.max
   i = 0
   While i <= items.max
+    
     Me.text = fcaption & " - " & CStr(i + 1) & "/" & CStr(items.max + 1)
     currentstream = items[i]
     yttitle = ""
@@ -88,12 +89,6 @@ Public Sub ConvertandSaveAudio()
       TextArea1.text &= ("Seems a youtube link, getting real stream url and title...") & "\n"
       Try yttitle = Youtube.GetTitle(currentstream)
       TextArea1.text &= ("Title") & ":\n" & yttitle & "\n"
-
-      Try currentstream = Youtube.realvideourl(currentstream, GeneralOptions.Youtubeformat.text)
-      If Error Then
-        Message.error(("Unable to get the real stream url"))
-        Goto nextlabel 'skip item
-      Endif
     Endif
     
       If yttitle = "" Then 
@@ -105,10 +100,11 @@ Public Sub ConvertandSaveAudio()
 
     kbps = combobox2.text
     mymplayer.clear_options()
+    mymplayer.set_option("ytdl-format", "bestaudio")
     mymplayer.set_option("oacopts=ab", kbps)
     mymplayer.set_option("o", Shell(finalfile))
     mymplayer.set_option("no-video", Chr(8))
-    mymplayer.set_option("ytdl", "no")
+    'mymplayer.set_option("ytdl", "no")
     Select combobox1.text
       Case Like "*mp3*"
         mymplayer.set_option("of", "mp3")
@@ -121,7 +117,6 @@ Public Sub ConvertandSaveAudio()
     mymplayer.do_play(currentstream)
     mymplayer.waitplayback(100)
     
-    'TextArea1.text &= "\n" & mymplayer.commandline & "\n"
     TextArea1.text &= ("Source:") & " " & File.Name(currentstream) & "\n"
     TextArea1.text &= ("Destination:") & " " & finalfile & "\n"
 
@@ -139,9 +134,6 @@ Public Sub ConvertandSaveAudio()
        Try Progressbar2.value = (Progressbar1.value / (items.max + 1)) + (i / (items.max + 1))
        Wait 0.1
     Wend
-    'Try TextArea1.text &= mymplayer.stdout
-    'Try TextArea1.text &= mymplayer.modules_out
-    'Try TextArea1.text &= mymplayer.stderr
     
     TextArea1.text &= ("Done.") & "\n"
     TextArea1.text &= "\n"
@@ -171,8 +163,8 @@ Public Sub ConvertandSaveAudio()
   Me.text = ("Updating Library/Playlist")
   Wait
   For Each finalitem In converteditems
-    If CheckLIB.Value Then FMain.MyPlaylist.AddFile(FMain.librarygrid, finalitem, False)
-    If CheckPLS.Value Then FMain.MyLibrary.AddFile(FMain.playlistgrid, finalitem, False)
+    If checkpls.value Then FMain.MyPlaylist.AddFile(FMain.playlistgrid, finalitem, False)
+    If Checklib.Value Then FMain.MyLibrary.AddFile(FMain.librarygrid, finalitem, False)
   Next 'finalitem
   Me.text = fcaption
   Me.mouse = Mouse.normal

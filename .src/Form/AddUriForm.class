@@ -5,7 +5,8 @@
 
 Public Sub Run() As Boolean
 
-  Return Not Me.ShowModal()
+  Try Return Not Me.ShowModal()
+  If Error Then Return False
 
 End
 
@@ -93,7 +94,7 @@ End
 
 Public Sub Form_Close()
 
-  FMain.VideoBox.setfocus()
+  fmain.videoboxproxy.SetFocus()
 
 End
 
