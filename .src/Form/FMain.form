@@ -1394,7 +1394,7 @@
               Text = ("Order by")
             }
             { ComboBoxOrderBy ComboBox
-              MoveScaled(9.4286,-73.2857,18,4.5714)
+              MoveScaled(9.4286,-74.2857,18,4.5714)
               #Translate = False
               Expand = True
               ReadOnly = True
@@ -2069,7 +2069,7 @@
               Border = False
             }
             { Panel9 Panel
-              MoveScaled(21,3,14.2857,17)
+              MoveScaled(23,1,14,4)
               Expand = True
               Arrangement = Arrange.Fill
               Padding = 8
