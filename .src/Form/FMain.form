@@ -1394,7 +1394,7 @@
               Text = ("Order by")
             }
             { ComboBoxOrderBy ComboBox
-              MoveScaled(9.4286,-74.2857,18,4.5714)
+              MoveScaled(9.4286,-75.2857,18,4.5714)
               #Translate = False
               Expand = True
               ReadOnly = True
@@ -2129,12 +2129,12 @@
             }
           }
           { ControlPanelRight Panel
-            MoveScaled(45,1,17.1429,6)
+            MoveScaled(45,1,17.1429,5)
             Drop = True
+            Expand = True
             Arrangement = Arrange.Horizontal
-            AutoResize = True
             { ShowVolBtn ToolButton
-              MoveScaled(1,0,4,4.5714)
+              MoveScaled(2,0,5,5)
               Font = Font["6"]
               AutoResize = True
               Picture = Picture["volume-faenza.png"]
@@ -2144,9 +2144,10 @@
               Visible = False
               Expand = True
               { SaveVolumeSlider Slider
-                MoveScaled(0,0,6,5)
+                MoveScaled(4,0,6,5)
                 Font = Font["6"]
                 Tag = "user"
+                Expand = True
                 PageStep = 5
                 Value = 12
               }

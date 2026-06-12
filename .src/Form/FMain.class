@@ -400,7 +400,6 @@ End
 
 
 Public Sub AllInit_Pre()
-
   youtube = New YoutubeClass(youtubetree)
   shadeup.visible = False
   VersionCheck()
@@ -421,7 +420,7 @@ Public Sub AllInit_Pre()
     ReallySaveAllSettings("Factory_Defaults", False) 'before loading user settings, make a profile with factory values.
   Endif
   Global.LoadEarlySettings(global.CurrentProfile) 'slow
-
+  ControlPanelRight.AutoResize = True
   'the following has To be called after loadearlysettings because 
   'Is There where we load generaloptions form settings
   If generaloptions.ShowCoversInListChk.value Then
@@ -447,6 +446,7 @@ Public Sub AllInit_Pre()
     global.mydebug("Cannot copy _mpvstats.lua to " & global.tmpdir)
     Stop
   Endif
+  
 End
 
 Public Sub InitEarlyForms()
@@ -12464,3 +12464,4 @@ Public Sub VideoAreaGroup_GotFocus()
   Last.Move(-100, -100, 1, 1)
 
 End
+
