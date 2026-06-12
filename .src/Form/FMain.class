@@ -420,7 +420,7 @@ Public Sub AllInit_Pre()
     ReallySaveAllSettings("Factory_Defaults", False) 'before loading user settings, make a profile with factory values.
   Endif
   Global.LoadEarlySettings(global.CurrentProfile) 'slow
-  ControlPanelRight.AutoResize = True
+  
   'the following has To be called after loadearlysettings because 
   'Is There where we load generaloptions form settings
   If generaloptions.ShowCoversInListChk.value Then
@@ -446,11 +446,14 @@ Public Sub AllInit_Pre()
     global.mydebug("Cannot copy _mpvstats.lua to " & global.tmpdir)
     Stop
   Endif
-  
+      volumecontainer.Visible = False
+      volumecontainer.autoresize = False
+  '        controlpanelright.refresh()
+    controlpanelright.autoresize = True
+
 End
 
-Public Sub InitEarlyForms()
-
+Public Sub InitEarlyForms()  
   global.myDebug("start at: " & Time)
   Try Last.mouse = mouse.wait
   fmain.mouse = mouse.wait
@@ -462,10 +465,10 @@ Public Sub InitEarlyForms()
   fmain.mouse = mouse.default
   global.myDebug("Ends at:" & Time)
   global.myDebug("")
-
 End
 
 Public Sub AllInit_Post()
+
   Dim cscreen As Screen  
   Dim savefileview1path As String
   If Not Panel2.visible Then Panel2.visible = True
@@ -4364,7 +4367,6 @@ Public Sub ShowVolBtn_Mouseup()
   If Mouse.left Then 
     controlpanelright.autoresize = False
     controlpanelright.w = 120
-    'SaveVolumeSlider.Visible = Not SaveVolumeSlider.Visible
     volumecontainer.Visible = Not volumecontainer.Visible
     volumecontainer.autoresize = Not volumecontainer.Visible
     controlpanelright.refresh()
@@ -12464,4 +12466,5 @@ Public Sub VideoAreaGroup_GotFocus()
   Last.Move(-100, -100, 1, 1)
 
 End
+
 
