@@ -548,7 +548,7 @@ Public Sub OldScrollToEvent(e As String, Optional SecondSearch As Boolean = Fals
 
   If Not (secondSearch Or FromScratch) Then 'search again from the beginning
     LastepgFound = Null
-    Try ScrollToEvent(e, True)
+    Try ScrollToEvent(e)
   Endif
 
   lastepgfound = Null
